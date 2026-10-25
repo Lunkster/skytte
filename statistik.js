@@ -1,7 +1,7 @@
 // Statistik per gren: topplista, guldnivåer, utveckling per skytt (små diagram) och skottfördelning.
-import { api, write, esc, fmt, minns, idag } from './lib.js?v=0.5.0';
-import { beraknaUtmarkelser, marke, malNattFor } from './utmarkelser.js?v=0.5.0';
-import { kvallensLista, form, formPil, procent, kvallensSkytt, rekordtidslinje, jamnhetOchSerienummer, traningsmangd, sasongsmal, grenarJamforda, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.0';
+import { api, write, esc, fmt, minns, idag } from './lib.js?v=0.5.1';
+import { beraknaUtmarkelser, marke, malNattFor, kopplaForklaring } from './utmarkelser.js?v=0.5.1';
+import { kvallensLista, form, formPil, procent, kvallensSkytt, rekordtidslinje, jamnhetOchSerienummer, traningsmangd, sasongsmal, grenarJamforda, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.1';
 
 const PERIODER = [
   { id: 'allt', namn: 'Allt' },
@@ -22,6 +22,8 @@ export async function renderStatistik(app, g) {
     api('mal?select=*'),
   ]);
   let mal = malData;
+  const utmPerSkytt = new Map();
+  kopplaForklaring(app, (b) => utmPerSkytt.get(Number(b.closest('[data-skytt]')?.dataset.skytt))?.find((u) => u.id === b.dataset.utm));
   let sasong = minns('stat-sasong') ?? aktuellSasong();
 
   app.innerHTML = `
@@ -98,7 +100,7 @@ export async function renderStatistik(app, g) {
 
       ${sasonger.length > 1 ? `<div class="chips liten sasongval" id="fsasong">${sasonger.map((y) => `<button type="button" data-y="${y}" class="${y === sasong ? 'vald' : ''}">${esc(sasongNamn(y))}</button>`).join('')}</div>` : ''}
       ${sasongsmal(allaGren, mal, g, gren, sasong)}
-      ${utmarkelserOversikt(allaGren, dagarGren, mal, g, gren)}
+      ${utmarkelserOversikt(allaGren, dagarGren, mal, g, gren, utmPerSkytt)}
 
       ${guld.length ? `<section class="card">
         <h2>Guldserier</h2>
@@ -374,22 +376,23 @@ export function kopplaTips(el, tip) {
 }
 
 // Utmärkelser för hela familjen: antal och de senaste per skytt, länk till skyttsidan
-function utmarkelserOversikt(allaGren, dagarGren, mal, g, gren) {
+function utmarkelserOversikt(allaGren, dagarGren, mal, g, gren, minne) {
   const kv = kvallensLista(allaGren, dagarGren);
   const rader = g.skyttar.map((sk) => {
     const egna = allaGren.filter((s) => s.skytt_id === sk.id);
     if (!egna.length) return null;
     const u = beraknaUtmarkelser(egna, gren, { guld: g.guld.filter((x) => x.gren_id === gren.id), kvallens: kv.filter((x) => x.skytt_id === sk.id), malNatt: malNattFor(egna, mal, sk.id, gren.id, sasongFor) });
-    const tagna = u.filter((x) => x.datum).sort((a, b) => (a.datum < b.datum ? 1 : -1));
+    minne.set(sk.id, u);
+    const tagna = u.filter((x) => x.datum).sort((a, b) => (b.niva - a.niva) || (a.datum < b.datum ? 1 : -1));
     return { sk, tagna, totalt: u.length };
   }).filter(Boolean).sort((a, b) => b.tagna.length - a.tagna.length);
   return `<section class="card" id="utmarkelser">
     <h2>Utmärkelser</h2>
-    ${rader.map((r) => `<div class="utmrad">
+    ${rader.map((r) => `<div class="utmrad" data-skytt="${r.sk.id}">
       <div class="malhuvud"><b><a href="#/skytt/${r.sk.id}" class="skyttlank">${esc(r.sk.namn)}</a></b><span class="muted liten">${r.tagna.length} av ${r.totalt}</span>
         <a href="#/skytt/${r.sk.id}" class="btn liten textknapp">Alla</a></div>
       <div class="marken kompakt">${r.tagna.slice(0, 3).map((u) => marke(u)).join('')}</div>
     </div>`).join('')}
-    <p class="hjalp">De senaste tre per skytt. Tryck på namnet för skyttens sida med alla utmärkelser och vad som är kvar.</p>
+    <p class="hjalp">De tre finaste per skytt. Tryck på en utmärkelse för förklaringen, och på namnet för skyttens sida med alla utmärkelser och vad som är kvar.</p>
   </section>`;
 }

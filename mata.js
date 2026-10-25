@@ -1,6 +1,6 @@
 // Mata in (och ändra) en serie: gren, skytt, datum, serienummer, serietotal eller skott för skott.
-import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.5.0';
-import { nyaMed } from './utmarkelser.js?v=0.5.0';
+import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.5.1';
+import { nyaMed } from './utmarkelser.js?v=0.5.1';
 
 let flash = '';   // meddelande som ska visas efter nästa sidbyte (t.ex. "sparad, nästa serie")
 

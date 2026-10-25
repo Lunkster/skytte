@@ -1,5 +1,5 @@
 // Alla serier per tillfälle (datum), nyast först. Tryck på en serie för att ändra den.
-import { api, esc, fmt, minns } from './lib.js?v=0.5.0';
+import { api, esc, fmt, minns } from './lib.js?v=0.5.1';
 
 export async function renderSerier(app, g, meddelande = '') {
   let gren = minns('serier-gren') ?? 0;     // 0 = alla grenar

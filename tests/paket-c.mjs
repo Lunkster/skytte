@@ -30,8 +30,15 @@ kolla('Statistik-fliken aktiv', await p.$eval('.tabs a[data-route=statistik]', (
 kolla('sex nyckeltal', (await p.$$('.tal-ruta')).length === 6);
 const utm = (await p.textContent('#utmarkelser')).replace(/\s+/g, ' ');
 console.log(utm.slice(0, 300));
-kolla('utmärkelser tagna', /\d+ av \d+/.test(utm) && utm.includes('Första serien') && utm.includes('Mitt i prick'));
+kolla('utmärkelser tagna', /\d+ av \d+/.test(utm) && utm.includes('Mitt i prick') && !utm.includes('Första serien'));
 kolla('kvällens skytt/mål nått kan finnas', utm.includes('Målet nått') || true);
+// Förklaring vid tryck
+await p.click('#utmarkelser button.marke[data-utm="mitt-i-prick"]'); await v(200);
+const ruta = (await p.textContent('#utmruta')).replace(/\s+/g, ' ');
+kolla('förklaring visas', !(await p.$eval('#utmruta', (e) => e.hidden)) && ruta.includes('10,9') && ruta.includes('Silver') && ruta.includes('Tagen'), ruta);
+await p.screenshot({ path: 'c3-forklaring.png' });
+await p.click('#utmruta .stang'); await v(150);
+kolla('förklaring stängs', await p.$eval('#utmruta', (e) => e.hidden));
 await p.click('#visaKvar'); await v(300);
 kolla('visar de som är kvar', !(await p.$eval('.marken.kvar', (e) => e.hidden)) && (await p.$$('.marken.kvar .markestapel')).length > 0);
 kolla('säsongsmål på skyttsidan', (await p.textContent('.card:has(h2:text("Säsongsmål"))')).includes('av 99'));
@@ -47,10 +54,14 @@ kolla('namn i serielistan länkar', (await p.$$('a.skyttlank[href="#/skytt/2"]')
 // Ny utmärkelse vid sparande
 await p.goto(URL + '#/'); await v(500);
 await p.click('#gren button:has-text("Luftgevär")'); await v(300);
-await p.click("#skytt button:has-text(\"Dan\")"); await v(300);
+await p.click("#skytt button:has-text(\"Bo\")"); await v(300);
 await p.click('#satt button[data-satt=total]'); await v(100);
-await p.fill("#total", "98,0"); await p.click('#spara'); await v(800);
+await p.fill("#total", "108,0"); await p.click('#spara'); await v(800);
 const msg = await p.textContent('#msg');
-kolla('ny utmärkelse vid sparande', msg.includes('Ny utmärkelse'), msg);
+kolla('ny utmärkelse vid sparande', msg.includes('Ny utmärkelse: Mästarserie'), msg);
+// Förklaring även i översikten på Statistik
+await p.goto(URL + '#/statistik'); await v(700);
+await p.click('#utmarkelser .utmrad[data-skytt="2"] button.marke >> nth=0'); await v(200);
+kolla('förklaring i översikten', (await p.textContent('#utmruta h3')).length > 2, await p.textContent('#utmruta h3'));
 await p.screenshot({ path: 'c2-mata.png' });
 console.log('fel:', fel); await b.close(); process.exit(fel ? 1 : 0);

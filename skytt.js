@@ -1,8 +1,8 @@
 // Skyttsida (F-28): egen utveckling, nyckeltal, säsongsmål, utmärkelser, senaste tillfällen och skottprofil.
-import { api, esc, fmt, minns } from './lib.js?v=0.5.0';
-import { diagram, perSkottnummer, tappadePoang, svitar, kopplaTips } from './statistik.js?v=0.5.0';
-import { form, formPil, procent, kvallensLista, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.0';
-import { beraknaUtmarkelser, marke, malNattFor } from './utmarkelser.js?v=0.5.0';
+import { api, esc, fmt, minns } from './lib.js?v=0.5.1';
+import { diagram, perSkottnummer, tappadePoang, svitar, kopplaTips } from './statistik.js?v=0.5.1';
+import { form, formPil, procent, kvallensLista, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.1';
+import { beraknaUtmarkelser, marke, malNattFor, kopplaForklaring } from './utmarkelser.js?v=0.5.1';
 
 export async function renderSkytt(app, g, skyttId) {
   const sk = g.skyttar.find((x) => x.id === skyttId);
@@ -17,6 +17,8 @@ export async function renderSkytt(app, g, skyttId) {
   let grenId = minns(`skytt-gren-${sk.id}`) ?? grenVal[0].id;
   if (!grenVal.some((x) => x.id === grenId)) grenId = grenVal[0].id;
   let visaAlla = false;
+  let utmNu = [];
+  kopplaForklaring(app, (b) => utmNu.find((u) => u.id === b.dataset.utm));
 
   app.innerHTML = `
     <div class="skytthuvud"><h1>${esc(sk.namn)}</h1><a href="#/statistik" class="muted liten">‹ Statistik</a></div>
@@ -50,6 +52,7 @@ export async function renderSkytt(app, g, skyttId) {
     const kvallens = kvallensLista(allaGren, dagarGren).filter((x) => x.skytt_id === sk.id);
     const malNatt = malNattFor(egna, mal, sk.id, grenId, sasongFor);
     const utm = beraknaUtmarkelser(egna, gren, { guld: g.guld.filter((x) => x.gren_id === grenId), kvallens, malNatt });
+    utmNu = utm;
     const tagna = utm.filter((u) => u.datum).sort((a, b) => (a.datum < b.datum ? 1 : -1));
     const kvar = utm.filter((u) => !u.datum);
 
@@ -78,6 +81,7 @@ export async function renderSkytt(app, g, skyttId) {
 
       <section class="card" id="utmarkelser">
         <div class="rubrikrad"><h2>Utmärkelser</h2><span class="muted">${tagna.length} av ${utm.length}</span></div>
+        <p class="hjalp">Tryck på en utmärkelse för att se vad den betyder. Brons, silver, guld och mästare – ju högre nivå, desto svårare.</p>
         <div class="marken">${tagna.map((u) => marke(u)).join('') || '<p class="muted">Inga än – snart!</p>'}</div>
         ${kvar.length ? `<button type="button" class="btn liten textknapp" id="visaKvar">${visaAlla ? 'Dölj' : 'Visa'} de som är kvar (${kvar.length})</button>
           <div class="marken kvar" ${visaAlla ? '' : 'hidden'}>${kvar.sort((a, b) => (b.framsteg ? b.framsteg[0] / b.framsteg[1] : 0) - (a.framsteg ? a.framsteg[0] / a.framsteg[1] : 0)).map((u) => marke(u)).join('')}</div>` : ''}

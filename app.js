@@ -1,9 +1,9 @@
 // Router, inloggning och grunddata (skyttar, grenar, guldnivåer).
-import { api, login, logout, isLoggedIn, esc } from './lib.js?v=0.5.0';
-import { renderMata, tomFlash } from './mata.js?v=0.5.0';
-import { renderSerier } from './serier.js?v=0.5.0';
-import { renderStatistik } from './statistik.js?v=0.5.0';
-import { renderSkytt } from './skytt.js?v=0.5.0';
+import { api, login, logout, isLoggedIn, esc } from './lib.js?v=0.5.1';
+import { renderMata, tomFlash } from './mata.js?v=0.5.1';
+import { renderSerier } from './serier.js?v=0.5.1';
+import { renderStatistik } from './statistik.js?v=0.5.1';
+import { renderSkytt } from './skytt.js?v=0.5.1';
 
 const app = document.getElementById('app');
 let grund = null;

@@ -185,3 +185,6 @@ p.msg.info { display: block; }
 .seriechip.harskott { box-shadow: inset 3px 0 0 var(--serie-a); }
 
 .foot .installera { display: flex; margin: 0 auto 10px; min-height: 44px; font-size: 15px; }
+
+/* paket B (v0.3.0) */
+.tabell td.framhav { color: var(--accent-2); font-weight: 700; }

@@ -1,5 +1,5 @@
 // Statistik per gren: topplista, guldnivåer, utveckling per skytt (små diagram) och skottfördelning.
-import { api, esc, fmt, minns, idag } from './lib.js?v=0.2.1';
+import { api, esc, fmt, minns, idag } from './lib.js?v=0.3.0';
 
 const PERIODER = [
   { id: 'allt', namn: 'Allt' },
@@ -104,7 +104,10 @@ export async function renderStatistik(app, g) {
           <figcaption><b>${esc(r.sk.namn)}</b></figcaption>${diagram(r, rader, matt, gren)}</figure>`).join('')}</div>
       </section>
 
-      ${skottSerier.length ? skottfordelning(skottSerier, g, gren) : ''}`;
+      ${skottSerier.length ? skottfordelning(skottSerier, g, gren) : ''}
+      ${skottSerier.length ? perSkottnummer(skottSerier, g, gren) : ''}
+      ${skottSerier.length ? tappadePoang(skottSerier, g, gren) : ''}
+      ${skottSerier.length ? svitar(skottSerier, g, gren) : ''}`;
 
     // hover/tryck på punkter
     const tip = app.querySelector('#tip');
@@ -202,5 +205,106 @@ function skottfordelning(ss, g, gren) {
         ${r.korg.map((v) => `<td class="tal">${v ? `${v}<small class="datum">${Math.round((100 * v) / r.n)} %</small>` : '<span class="muted">0</span>'}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>
     <p class="hjalp">Bara serier som matats in skott för skott (${ss.length} st).</p>
+  </section>`;
+}
+
+// ---------- paket B: kräver skott (F-40–F-42) ----------
+const tia = (v, gren) => v >= 10;                                   // 10-ringen (10,0–10,9 resp. 10 och fullträff)
+const fullaSerier = (ss, gren) => ss.filter((s) => s.skott.length === gren.antal_skott);
+
+// F-40: snitt per skottnummer, ett litet diagram per skytt med samma skala
+function perSkottnummer(ss, g, gren) {
+  const n = gren.antal_skott, d = gren.decimaler ? 2 : 1;
+  const rader = g.skyttar.map((sk) => {
+    const egna = fullaSerier(ss.filter((s) => s.skytt_id === sk.id), gren);
+    if (egna.length < 2) return null;
+    const snitt = Array.from({ length: n }, (_, i) => egna.reduce((a, s) => a + Number(s.skott[i]), 0) / egna.length);
+    const tot = snitt.reduce((a, v) => a + v, 0) / n;
+    return { sk, serier: egna.length, snitt, tot };
+  }).filter(Boolean);
+  if (!rader.length) return '';
+  const alla = rader.flatMap((r) => r.snitt);
+  let y0 = Math.floor(Math.min(...alla) * 5) / 5, y1 = Math.ceil(Math.max(...alla) * 5) / 5;
+  if (y1 - y0 < 0.4) { y0 -= 0.2; y1 += 0.2; }
+  const W = 320, H = 140, m = { l: 34, r: 8, t: 10, b: 22 };
+  const X = (i) => m.l + (i / (n - 1)) * (W - m.l - m.r);
+  const Y = (v) => H - m.b - ((v - y0) / (y1 - y0)) * (H - m.t - m.b);
+  const steg = (y1 - y0) / 4;
+  const panel = (r) => {
+    let svg = '';
+    for (let k = 0; k <= 4; k++) { const v = y0 + k * steg; svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" class="grid"/><text x="${m.l - 6}" y="${Y(v) + 4}" class="axel" text-anchor="end">${fmt(v, 1)}</text>`; }
+    for (let i = 0; i < n; i++) svg += `<text x="${X(i)}" y="${H - 6}" class="axel" text-anchor="middle">${i + 1}</text>`;
+    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(r.tot)}" y2="${Y(r.tot)}" class="linje-b"/>`;
+    svg += `<path d="${r.snitt.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('')}" class="linje-a"/>`;
+    svg += r.snitt.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="4" class="punkt"/>`).join('');
+    svg += r.snitt.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="14" class="traff" data-tip="${esc(`<b>Skott ${i + 1}</b><br>Snitt ${fmt(v, d)}<br>${r.serier} serier`)}"/>`).join('');
+    const min = r.snitt.indexOf(Math.min(...r.snitt)), max = r.snitt.indexOf(Math.max(...r.snitt));
+    return `<figure class="panel"><figcaption><b>${esc(r.sk.namn)}</b> <span class="muted liten">svagast skott ${min + 1} (${fmt(r.snitt[min], d)}) · starkast skott ${max + 1} (${fmt(r.snitt[max], d)})</span></figcaption>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(r.sk.namn)}: snitt per skottnummer">${svg}</svg></figure>`;
+  };
+  return `<section class="card">
+    <h2>Snitt per skottnummer</h2>
+    <p class="legend"><span class="lg lg-a"></span>Snitt för skottet <span class="lg lg-b"></span>Eget snitt per skott</p>
+    <div class="smadiagram">${rader.map(panel).join('')}</div>
+    <p class="hjalp">Var i serien går det bäst och sämst? Bara hela serier inmatade skott för skott.</p>
+  </section>`;
+}
+
+// F-41: tappade poäng – vad skott under 10 kostar jämfört med en 10,0, i snitt per serie
+function tappadePoang(ss, g, gren) {
+  const korgar = [['9', (v) => v >= 9 && v < 10], ['8', (v) => v >= 8 && v < 9], ['≤7', (v) => v < 8]];
+  const rader = g.skyttar.map((sk) => {
+    const egna = fullaSerier(ss.filter((s) => s.skytt_id === sk.id), gren);
+    if (!egna.length) return null;
+    const vals = egna.flatMap((s) => s.skott.map(Number));
+    const tapp = (f) => vals.filter((v) => v < 10 && f(v)).reduce((a, v) => a + (10 - v), 0) / egna.length;
+    const per = korgar.map(([, f]) => tapp(f));
+    return { sk, serier: egna.length, tot: per.reduce((a, v) => a + v, 0), per, under: vals.filter((v) => v < 10).length / egna.length };
+  }).filter(Boolean).sort((a, b) => a.tot - b.tot);
+  if (!rader.length) return '';
+  return `<section class="card">
+    <h2>Tappade poäng</h2>
+    <div class="tabellwrap"><table class="tabell">
+      <thead><tr><th>Skytt</th><th class="tal">Tappat/serie</th>${korgar.map(([k]) => `<th class="tal">på ${k}:or</th>`).join('')}<th class="tal">Skott under 10/serie</th></tr></thead>
+      <tbody>${rader.map((r) => {
+        const storst = r.per.indexOf(Math.max(...r.per));
+        return `<tr><td><b>${esc(r.sk.namn)}</b></td><td class="tal"><b>${fmt(r.tot, 1)}</b></td>
+        ${r.per.map((v, i) => `<td class="tal${i === storst && v > 0 ? ' framhav' : ''}">${v ? fmt(v, 1) : '<span class="muted">0</span>'}</td>`).join('')}
+        <td class="tal">${fmt(r.under, 1)}</td></tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    <p class="hjalp">Poäng som skott under 10 kostar jämfört med en 10,0, i snitt per serie. Markerad siffra = där mest poäng försvinner.</p>
+  </section>`;
+}
+
+// F-42: längsta tiosvit och flest stjärnor i rad – skott i följd under samma dag, över serierna
+function svitar(ss, g, gren) {
+  const langst = (egna, f) => {
+    let basta = { n: 0, datum: null }, nu = 0, dag = null;
+    for (const s of egna) {
+      if (s.datum !== dag) { dag = s.datum; nu = 0; }
+      for (const v of s.skott.map(Number)) {
+        nu = f(v) ? nu + 1 : 0;
+        if (nu > basta.n) basta = { n: nu, datum: s.datum };
+      }
+    }
+    return basta;
+  };
+  const rader = g.skyttar.map((sk) => {
+    const egna = ss.filter((s) => s.skytt_id === sk.id).sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : a.nr - b.nr));
+    if (!egna.length) return null;
+    const stjSerie = egna.reduce((a, s) => (!a || s.stjarnor > a.stjarnor ? s : a), null);
+    return { sk, tia: langst(egna, (v) => tia(v, gren)), stj: langst(egna, (v) => v >= Number(gren.stjarna_fran) - 1e-9), stjSerie };
+  }).filter(Boolean).sort((a, b) => b.tia.n - a.tia.n);
+  if (!rader.length) return '';
+  const cell = (x) => x.n ? `${x.n}<small class="datum">${esc(x.datum)}</small>` : '<span class="muted">0</span>';
+  return `<section class="card">
+    <h2>Svitar</h2>
+    <div class="tabellwrap"><table class="tabell">
+      <thead><tr><th>Skytt</th><th class="tal">Tior i rad</th><th class="tal">Stjärnor i rad</th><th class="tal">Flest ★ i en serie</th></tr></thead>
+      <tbody>${rader.map((r) => `<tr><td><b>${esc(r.sk.namn)}</b></td><td class="tal">${cell(r.tia)}</td><td class="tal">${cell(r.stj)}</td>
+        <td class="tal">${r.stjSerie.stjarnor}<small class="datum">${esc(r.stjSerie.datum)} serie ${r.stjSerie.nr}</small></td></tr>`).join('')}</tbody>
+    </table></div>
+    <p class="hjalp">Skott i följd samma dag, även över seriegränsen. Tia = ${gren.decimaler ? '10,0 och uppåt' : '10 eller fullträff'}, stjärna = ${fmt(gren.stjarna_fran, 1)} och uppåt.</p>
   </section>`;
 }

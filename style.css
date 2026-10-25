@@ -221,3 +221,29 @@ p.msg.info { display: block; }
 .malform input { flex: 1; min-width: 140px; min-height: 40px; font-size: 16px; }
 .malform input.ogiltig { border-color: var(--fel); }
 .nyttrekord { color: var(--guld); font-weight: 700; }
+
+/* paket C (v0.5.0): skyttsida och utmärkelser */
+a.skyttlank { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--text-3); }
+a.skyttlank:hover { color: var(--accent-2); }
+.skytthuvud { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.skytthuvud h1 { margin-bottom: 8px; }
+.nyckeltal { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
+.tal-ruta { background: var(--kort); border: 1px solid var(--linje); border-radius: var(--radie); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.tal-ruta small { color: var(--text-3); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.tal-ruta b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.tal-ruta span { color: var(--text-2); font-size: 13px; }
+.smadiagram.en { grid-template-columns: 1fr; }
+.marken { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 8px 0; }
+.marken.kompakt { grid-template-columns: repeat(3, 1fr); }
+.marken.kvar { margin-top: 10px; }
+.marke { position: relative; background: var(--kort-2); border: 1px solid var(--linje); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; opacity: .55; min-height: 64px; }
+.marke.tagen { opacity: 1; border-color: var(--guld); }
+.markeikon { font-size: 18px; color: var(--text-3); line-height: 1; }
+.marke.tagen .markeikon { color: var(--guld); }
+.markenamn { font-weight: 600; font-size: 14px; line-height: 1.25; }
+.marke small { color: var(--text-3); font-size: 11px; }
+.markestapel { height: 4px; background: var(--linje); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+.markestapel span { display: block; height: 100%; background: var(--serie-a); }
+.utmrad { padding: 8px 0; border-top: 1px solid var(--linje); }
+.utmrad:first-of-type { border-top: 0; }
+@media (max-width: 420px) { .marken.kompakt { grid-template-columns: repeat(2, 1fr); } .marken.kompakt .marke:nth-child(3) { display: none; } }

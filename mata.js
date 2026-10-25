@@ -1,5 +1,6 @@
 // Mata in (och ändra) en serie: gren, skytt, datum, serienummer, serietotal eller skott för skott.
-import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.4.0';
+import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.5.0';
+import { nyaMed } from './utmarkelser.js?v=0.5.0';
 
 let flash = '';   // meddelande som ska visas efter nästa sidbyte (t.ex. "sparad, nästa serie")
 
@@ -336,9 +337,9 @@ export async function renderMata(app, g, serieId = null, lage = '') {
       if (st.redigera) { location.hash = '#/serier'; return; }
       const poang = st.satt === 'total' ? rad.total : summa(skott.map((x) => x.varde));
       const stj = st.satt === 'total' ? rad.stjarnor : skott.filter((x) => stjarna(x.varde, gr)).length;
-      const rekord = await rekordText(id, poang).catch(() => '');
+      const rekord = (await rekordText(id, poang).catch(() => '')) + (await nyaUtmarkelser(id).catch(() => ''));
       meddela(`${st.skytt.namn}, serie ${st.nr} sparad: ${fmt(poang, gr.decimaler || poang % 1 ? 1 : 0)} ★ ${stj}${rekord}`);
-      if (rekord) $('msg').classList.add('nyttrekord'); else $('msg').classList.remove('nyttrekord');
+      if (/Grattis|utmärkelse/.test(rekord)) $('msg').classList.add('nyttrekord'); else $('msg').classList.remove('nyttrekord');
       nollstallSkott(st); st.total = ''; st.stjarnor = 0; st.nrAndrat = false;
       ritaInmatning(); await laddaDag();
       fokusera();
@@ -383,6 +384,13 @@ export async function renderMata(app, g, serieId = null, lage = '') {
       if (dagsSnitt > bastaDag) delar.push(`dagsmedlet ${fmt(dagsSnitt, 2)} slår bästa dagen (${fmt(bastaDag, 2)})`);
     }
     return delar.length ? ` – ★ Grattis! ${delar.join(' och ')}!` : '';
+  }
+
+  // F-43: utmärkelser som den nya serien gav
+  async function nyaUtmarkelser(id) {
+    const egna = await api(`v_serie?select=id,datum,nr,poang,stjarnor,skott&skytt_id=eq.${st.skytt.id}&gren_id=eq.${st.gren.id}`);
+    const nya = nyaMed(egna, st.gren, { guld: g.guld.filter((x) => x.gren_id === st.gren.id) }, id);
+    return nya.length ? ` · Ny utmärkelse: ${nya.map((u) => u.namn).join(', ')}!` : '';
   }
 
   function fokusera() {

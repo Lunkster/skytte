@@ -1,8 +1,9 @@
 // Router, inloggning och grunddata (skyttar, grenar, guldnivåer).
-import { api, login, logout, isLoggedIn, esc } from './lib.js?v=0.4.0';
-import { renderMata, tomFlash } from './mata.js?v=0.4.0';
-import { renderSerier } from './serier.js?v=0.4.0';
-import { renderStatistik } from './statistik.js?v=0.4.0';
+import { api, login, logout, isLoggedIn, esc } from './lib.js?v=0.5.0';
+import { renderMata, tomFlash } from './mata.js?v=0.5.0';
+import { renderSerier } from './serier.js?v=0.5.0';
+import { renderStatistik } from './statistik.js?v=0.5.0';
+import { renderSkytt } from './skytt.js?v=0.5.0';
 
 const app = document.getElementById('app');
 let grund = null;
@@ -21,7 +22,7 @@ export async function grunddata(fresh = false) {
 
 async function route() {
   const [vy, ...arg] = location.hash.replace(/^#\/?/, '').split('/');
-  document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.route === (vy || 'mata')));
+  document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.route === (vy === 'skytt' ? 'statistik' : (vy || 'mata'))));
   document.getElementById('loggaut').hidden = !isLoggedIn();
   if (vy === 'loggaut') { logout(); location.hash = '#/'; return; }
   if (!isLoggedIn()) return renderLogin();
@@ -29,6 +30,7 @@ async function route() {
     const g = await grunddata();
     if (vy === 'serier') return await renderSerier(app, g, tomFlash());
     if (vy === 'statistik') return await renderStatistik(app, g);
+    if (vy === 'skytt' && arg[0]) return await renderSkytt(app, g, Number(arg[0]));
     if (vy === 'serie' && arg[0]) return await renderMata(app, g, Number(arg[0]), arg[1] ?? '');
     return await renderMata(app, g);
   } catch (e) {

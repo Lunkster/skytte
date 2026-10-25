@@ -6,7 +6,7 @@ Webbläsartest med Playwright. Supabase ersätts av en attrapp i minnet (`attrap
 cd ~/Dokument/Claude/Skytte/kod/skytte/tests
 npm init -y >/dev/null && npm i -D playwright && npx playwright install chromium   # en gång
 cd .. && python3 -m http.server 8766 &                                           # appen på localhost:8766
-cd tests && node flode.mjs && node komplettera.mjs && node statistik-skott.mjs && node statistik-a.mjs
+cd tests && node flode.mjs && node komplettera.mjs && node statistik-skott.mjs && node statistik-a.mjs && node paket-c.mjs
 ```
 
 `flode.mjs` går igenom inloggning, serietotal, skott för skott (10 m med tangentbord, 50 m med knappsats), kommentar, krock på serienummer, ändra, ta bort, serielistan och statistiken i mobilbredd. Skärmbilder sparas som `f*.png`. `komplettera.mjs` provar att komplettera serier inmatade som total med skott: filtret *Bara serier utan skott*, jämförelse mot den gamla totalen, varning vid avvikelse och *Spara och nästa utan skott*.
@@ -14,5 +14,7 @@ cd tests && node flode.mjs && node komplettera.mjs && node statistik-skott.mjs &
 `statistik-skott.mjs` provar statistiken som kräver skott: snitt per skottnummer, tappade poäng och svitar (även över seriegränsen).
 
 `statistik-a.mjs` provar form, % av max, kvällens skytt, säsongsmål (sätta och ta bort), rekordtidslinje, jämnhet, serienummer, träningsmängd, grenarna jämförda och grattis vid nytt personbästa.
+
+`paket-c.mjs` provar utmärkelser (översikt och skyttsida), skyttsidan, länkar från topplista och serielista och ny utmärkelse vid sparande.
 
 Alla avslutar med `fel: 0` när allt är grönt.

@@ -1,6 +1,7 @@
 // Statistik per gren: topplista, guldnivåer, utveckling per skytt (små diagram) och skottfördelning.
-import { api, write, esc, fmt, minns, idag } from './lib.js?v=0.4.0';
-import { form, formPil, procent, kvallensSkytt, rekordtidslinje, jamnhetOchSerienummer, traningsmangd, sasongsmal, grenarJamforda, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.4.0';
+import { api, write, esc, fmt, minns, idag } from './lib.js?v=0.5.0';
+import { beraknaUtmarkelser, marke, malNattFor } from './utmarkelser.js?v=0.5.0';
+import { kvallensLista, form, formPil, procent, kvallensSkytt, rekordtidslinje, jamnhetOchSerienummer, traningsmangd, sasongsmal, grenarJamforda, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.0';
 
 const PERIODER = [
   { id: 'allt', namn: 'Allt' },
@@ -80,7 +81,7 @@ export async function renderStatistik(app, g) {
         <div class="tabellwrap"><table class="tabell">
           <thead><tr><th>Skytt</th><th class="tal">Snitt</th><th class="tal">Form</th><th class="tal">Bästa serie</th><th class="tal">Bästa dag</th><th class="tal">Senaste dag</th><th class="tal">★/serie</th><th class="tal">% av max</th><th class="tal">Serier</th></tr></thead>
           <tbody>${rader.map((r) => `<tr>
-            <td><b>${esc(r.sk.namn)}</b></td>
+            <td><b><a href="#/skytt/${r.sk.id}" class="skyttlank">${esc(r.sk.namn)}</a></b></td>
             <td class="tal"><b>${fmt(r.snitt, 2)}</b></td>
             <td class="tal">${formPil(r.form)}</td>
             <td class="tal">${fmt(r.bastaSerie.poang, d)}<small class="datum">${esc(r.bastaSerie.datum)}</small></td>
@@ -97,6 +98,7 @@ export async function renderStatistik(app, g) {
 
       ${sasonger.length > 1 ? `<div class="chips liten sasongval" id="fsasong">${sasonger.map((y) => `<button type="button" data-y="${y}" class="${y === sasong ? 'vald' : ''}">${esc(sasongNamn(y))}</button>`).join('')}</div>` : ''}
       ${sasongsmal(allaGren, mal, g, gren, sasong)}
+      ${utmarkelserOversikt(allaGren, dagarGren, mal, g, gren)}
 
       ${guld.length ? `<section class="card">
         <h2>Guldserier</h2>
@@ -165,19 +167,7 @@ export async function renderStatistik(app, g) {
     }));
 
     // hover/tryck på punkter
-    const tip = app.querySelector('#tip');
-    el.querySelectorAll('.smadiagram svg').forEach((svg) => {
-      const visa = (e) => {
-        const t = e.target.closest('[data-tip]');
-        if (!t) { tip.hidden = true; return; }
-        tip.innerHTML = t.dataset.tip; tip.hidden = false;
-        const r = t.getBoundingClientRect();
-        tip.style.left = `${Math.min(window.innerWidth - tip.offsetWidth - 8, Math.max(8, r.left + r.width / 2 - tip.offsetWidth / 2))}px`;
-        tip.style.top = `${r.top + window.scrollY - tip.offsetHeight - 8}px`;
-      };
-      svg.addEventListener('pointerover', visa); svg.addEventListener('pointerdown', visa);
-      svg.addEventListener('pointerleave', () => { tip.hidden = true; });
-    });
+    kopplaTips(el, app.querySelector('#tip'));
     el.querySelector('#matt')?.addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return; matt = minns('stat-matt', b.dataset.m); rita();
     });
@@ -193,7 +183,7 @@ export async function renderStatistik(app, g) {
 }
 
 // Ett litet linjediagram per skytt. Samma y-skala för alla paneler så att de går att jämföra.
-function diagram(r, alla, matt, gren) {
+export function diagram(r, alla, matt, gren) {
   const W = 320, H = 150, m = { l: 34, r: 8, t: 10, b: 22 };
   const glid = (dagE, i) => { const f = dagE.slice(Math.max(0, i - 2), i + 1).map((x) => Number(x.snitt)); return f.reduce((a, v) => a + v, 0) / f.length; };
   const punkter = r.dagE.map((x, i) => {
@@ -271,7 +261,7 @@ const tia = (v, gren) => v >= 10;                                   // 10-ringen
 const fullaSerier = (ss, gren) => ss.filter((s) => s.skott.length === gren.antal_skott);
 
 // F-40: snitt per skottnummer, ett litet diagram per skytt med samma skala
-function perSkottnummer(ss, g, gren) {
+export function perSkottnummer(ss, g, gren) {
   const n = gren.antal_skott, d = gren.decimaler ? 2 : 1;
   const rader = g.skyttar.map((sk) => {
     const egna = fullaSerier(ss.filter((s) => s.skytt_id === sk.id), gren);
@@ -309,7 +299,7 @@ function perSkottnummer(ss, g, gren) {
 }
 
 // F-41: tappade poäng – vad skott under 10 kostar jämfört med en 10,0, i snitt per serie
-function tappadePoang(ss, g, gren) {
+export function tappadePoang(ss, g, gren) {
   const korgar = [['9', (v) => v >= 9 && v < 10], ['8', (v) => v >= 8 && v < 9], ['≤7', (v) => v < 8]];
   const rader = g.skyttar.map((sk) => {
     const egna = fullaSerier(ss.filter((s) => s.skytt_id === sk.id), gren);
@@ -336,7 +326,7 @@ function tappadePoang(ss, g, gren) {
 }
 
 // F-42: längsta tiosvit och flest stjärnor i rad – skott i följd under samma dag, över serierna
-function svitar(ss, g, gren) {
+export function svitar(ss, g, gren) {
   const langst = (egna, f) => {
     let basta = { n: 0, datum: null }, nu = 0, dag = null;
     for (const s of egna) {
@@ -364,5 +354,42 @@ function svitar(ss, g, gren) {
         <td class="tal">${r.stjSerie.stjarnor}<small class="datum">${esc(r.stjSerie.datum)} serie ${r.stjSerie.nr}</small></td></tr>`).join('')}</tbody>
     </table></div>
     <p class="hjalp">Skott i följd samma dag, även över seriegränsen. Tia = ${gren.decimaler ? '10,0 och uppåt' : '10 eller fullträff'}, stjärna = ${fmt(gren.stjarna_fran, 1)} och uppåt.</p>
+  </section>`;
+}
+
+// Tooltip för diagrammens punkter (används även av skyttsidan)
+export function kopplaTips(el, tip) {
+  el.querySelectorAll('.smadiagram svg').forEach((svg) => {
+    const visa = (e) => {
+      const t = e.target.closest('[data-tip]');
+      if (!t) { tip.hidden = true; return; }
+      tip.innerHTML = t.dataset.tip; tip.hidden = false;
+      const r = t.getBoundingClientRect();
+      tip.style.left = `${Math.min(window.innerWidth - tip.offsetWidth - 8, Math.max(8, r.left + r.width / 2 - tip.offsetWidth / 2))}px`;
+      tip.style.top = `${r.top + window.scrollY - tip.offsetHeight - 8}px`;
+    };
+    svg.addEventListener('pointerover', visa); svg.addEventListener('pointerdown', visa);
+    svg.addEventListener('pointerleave', () => { tip.hidden = true; });
+  });
+}
+
+// Utmärkelser för hela familjen: antal och de senaste per skytt, länk till skyttsidan
+function utmarkelserOversikt(allaGren, dagarGren, mal, g, gren) {
+  const kv = kvallensLista(allaGren, dagarGren);
+  const rader = g.skyttar.map((sk) => {
+    const egna = allaGren.filter((s) => s.skytt_id === sk.id);
+    if (!egna.length) return null;
+    const u = beraknaUtmarkelser(egna, gren, { guld: g.guld.filter((x) => x.gren_id === gren.id), kvallens: kv.filter((x) => x.skytt_id === sk.id), malNatt: malNattFor(egna, mal, sk.id, gren.id, sasongFor) });
+    const tagna = u.filter((x) => x.datum).sort((a, b) => (a.datum < b.datum ? 1 : -1));
+    return { sk, tagna, totalt: u.length };
+  }).filter(Boolean).sort((a, b) => b.tagna.length - a.tagna.length);
+  return `<section class="card" id="utmarkelser">
+    <h2>Utmärkelser</h2>
+    ${rader.map((r) => `<div class="utmrad">
+      <div class="malhuvud"><b><a href="#/skytt/${r.sk.id}" class="skyttlank">${esc(r.sk.namn)}</a></b><span class="muted liten">${r.tagna.length} av ${r.totalt}</span>
+        <a href="#/skytt/${r.sk.id}" class="btn liten textknapp">Alla</a></div>
+      <div class="marken kompakt">${r.tagna.slice(0, 3).map((u) => marke(u)).join('')}</div>
+    </div>`).join('')}
+    <p class="hjalp">De senaste tre per skytt. Tryck på namnet för skyttens sida med alla utmärkelser och vad som är kvar.</p>
   </section>`;
 }

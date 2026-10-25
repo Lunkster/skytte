@@ -1,6 +1,6 @@
 // Statistik paket A (F-30–F-37): form, rekord, jämnhet, serienummer, träningsmängd, kvällens skytt,
 // säsongsmål och grenarna jämförda. Fungerar med serier inmatade både som total och skott för skott.
-import { esc, fmt, idag, maxSkott } from './lib.js?v=0.4.0';
+import { esc, fmt, idag, maxSkott } from './lib.js?v=0.5.0';
 
 const medel = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : null);
 const poang = (s) => Number(s.poang);
@@ -28,7 +28,8 @@ export const maxSerie = (gren) => gren.antal_skott * maxSkott(gren);
 export const procent = (v, gren) => (100 * v) / maxSerie(gren);
 
 // ---------- F-35: kvällens skytt = mest över sitt eget snitt före den dagen ----------
-export function kvallensSkytt(allaSerier, dagar, g, fran) {
+// Lista över alla kvällar med en kvällens skytt (används även av utmärkelser och skyttsidan)
+export function kvallensLista(allaSerier, dagar, fran = '0000') {
   const datumen = [...new Set(dagar.map((d) => d.datum))].sort();
   const lista = [];
   for (const datum of datumen) {
@@ -44,16 +45,22 @@ export function kvallensSkytt(allaSerier, dagar, g, fran) {
     const vinnare = kandidater.reduce((a, k) => (k.diff > a.diff ? k : a));
     lista.push({ datum, ...vinnare, deltog });
   }
+  return lista;
+}
+
+export function kvallensSkytt(allaSerier, dagar, g, fran) {
+  const lista = kvallensLista(allaSerier, dagar, fran);
   if (!lista.length) return '';
   const namn = (id) => g.skyttar.find((s) => s.id === id)?.namn ?? '?';
+  const lank = (id) => `<a href="#/skytt/${id}" class="skyttlank">${esc(namn(id))}</a>`;
   const antal = g.skyttar.map((sk) => ({ sk, n: lista.filter((x) => x.skytt_id === sk.id).length })).filter((x) => x.n).sort((a, b) => b.n - a.n);
   const senaste = [...lista].reverse().slice(0, 8);
   return `<section class="card" id="kvallens">
     <h2>Kvällens skytt</h2>
-    <p class="kvallens-antal">${antal.map((x) => `<span><b>${esc(x.sk.namn)}</b> ${x.n} ${x.n === 1 ? 'gång' : 'gånger'}</span>`).join('')}</p>
+    <p class="kvallens-antal">${antal.map((x) => `<span><b>${lank(x.sk.id)}</b> ${x.n} ${x.n === 1 ? 'gång' : 'gånger'}</span>`).join('')}</p>
     <div class="tabellwrap"><table class="tabell">
       <thead><tr><th>Datum</th><th>Kvällens skytt</th><th class="tal">Dagsmedel</th><th class="tal">Mot eget snitt</th></tr></thead>
-      <tbody>${senaste.map((x) => `<tr><td>${esc(x.datum)}</td><td><b>${esc(namn(x.skytt_id))}</b></td><td class="tal">${fmt(x.dag, 2)}</td>
+      <tbody>${senaste.map((x) => `<tr><td>${esc(x.datum)}</td><td><b>${lank(x.skytt_id)}</b></td><td class="tal">${fmt(x.dag, 2)}</td>
         <td class="tal"><span class="form ${x.diff >= 0 ? 'upp' : 'ner'}">${x.diff >= 0 ? '+' : '−'}${fmt(Math.abs(x.diff), 2)}</span><small class="datum">snitt ${fmt(x.bas, 2)}</small></td></tr>`).join('')}</tbody>
     </table></div>
     <p class="hjalp">Den som sköt mest över sitt eget snitt (alla tidigare serier) – så kan alla vinna, oavsett nivå. Kräver minst två skyttar samma dag och två tidigare serier.</p>

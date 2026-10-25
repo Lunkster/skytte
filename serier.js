@@ -1,5 +1,5 @@
 // Alla serier per tillfälle (datum), nyast först. Tryck på en serie för att ändra den.
-import { api, esc, fmt, minns } from './lib.js?v=0.4.0';
+import { api, esc, fmt, minns } from './lib.js?v=0.5.0';
 
 export async function renderSerier(app, g, meddelande = '') {
   let gren = minns('serier-gren') ?? 0;     // 0 = alla grenar
@@ -46,7 +46,7 @@ export async function renderSerier(app, g, meddelande = '') {
         ${[...t.skyttar].map(([id, sk]) => {
           const d = dagInfo.get(`${t.datum}|${id}|${t.gren_id}`);
           return `<div class="skyttrad">
-            <div class="skyttnamn"><b>${esc(sk.namn)}</b><span class="muted">snitt ${fmt(d?.snitt, 2)}</span></div>
+            <div class="skyttnamn"><b><a href="#/skytt/${id}" class="skyttlank">${esc(sk.namn)}</a></b><span class="muted">snitt ${fmt(d?.snitt, 2)}</span></div>
             <div class="seriechips">${sk.serier.map((s) => `<a href="#/serie/${s.id}${s.inmatning === 'total' && utanSkott ? '/skott' : ''}" class="seriechip${s.ofullstandig ? ' ofull' : ''}${s.inmatning === 'skott' ? ' harskott' : ''}" title="Serie ${s.nr}${s.inmatning === 'skott' ? ' (skott för skott)' : ' (bara total)'}">
               <small>${s.nr}</small>${fmt(s.poang)}<span class="stj">★${s.stjarnor ?? '–'}</span></a>`).join('')}</div>
             ${d?.kommentar ? `<p class="kommentartext">${esc(d.kommentar)}</p>` : ''}

@@ -10,12 +10,47 @@ erDiagram
   serie ||--o{ skott : "består av"
   skytt ||--o{ kommentar : "skriver per dag"
 
-  skytt { smallint id PK; text namn; boolean aktiv; smallint ordning }
-  gren { smallint id PK; text kod; text namn; smallint antal_skott; boolean decimaler; numeric fulltraff; numeric stjarna_fran; boolean aktiv }
-  guldniva { smallint gren_id PK; numeric grans PK; text namn }
-  serie { integer id PK; smallint skytt_id FK; smallint gren_id FK; date datum; smallint nr; numeric total; smallint stjarnor; timestamptz skapad }
-  skott { integer serie_id PK; smallint nr PK; numeric varde }
-  kommentar { smallint skytt_id PK; date datum PK; text text }
+  skytt {
+    smallint id PK
+    text namn
+    boolean aktiv
+    smallint ordning
+  }
+  gren {
+    smallint id PK
+    text kod
+    text namn
+    smallint antal_skott
+    boolean decimaler
+    numeric fulltraff
+    numeric stjarna_fran
+    boolean aktiv
+  }
+  guldniva {
+    smallint gren_id PK
+    numeric grans PK
+    text namn
+  }
+  serie {
+    integer id PK
+    smallint skytt_id FK
+    smallint gren_id FK
+    date datum
+    smallint nr
+    numeric total
+    smallint stjarnor
+    timestamptz skapad
+  }
+  skott {
+    integer serie_id PK
+    smallint nr PK
+    numeric varde
+  }
+  kommentar {
+    smallint skytt_id PK
+    date datum PK
+    text text
+  }
 ```
 
 ## Regler

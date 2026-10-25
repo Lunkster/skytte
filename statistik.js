@@ -1,5 +1,5 @@
 // Statistik per gren: topplista, guldnivåer, utveckling per skytt (små diagram) och skottfördelning.
-import { api, esc, fmt, minns, idag } from './lib.js?v=0.2.0';
+import { api, esc, fmt, minns, idag } from './lib.js?v=0.2.1';
 
 const PERIODER = [
   { id: 'allt', namn: 'Allt' },

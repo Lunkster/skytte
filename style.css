@@ -172,3 +172,14 @@ input[type=date] { min-width: 0; }
 /* inloggning */
 .login { max-width: 380px; margin: 32px auto; display: flex; flex-direction: column; gap: 10px; }
 .login h1 { margin: 0; }
+
+/* komplettera serier med skott (v0.2.0) */
+.info { background: var(--kort-2); border-left: 3px solid var(--serie-a); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; color: var(--text-2); }
+.info .btn { display: flex; margin-top: 8px; min-height: 44px; padding: 6px 14px; }
+p.msg.info { display: block; }
+.jamfor { font-size: 14px; margin-top: 6px; }
+.jamfor.ok { color: #6fd39b; }
+.jamfor.avviker { color: var(--fel); }
+.vaxel { display: flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text-2); font-size: 15px; cursor: pointer; }
+.vaxel input { width: 22px; height: 22px; min-height: 0; accent-color: var(--accent); }
+.seriechip.harskott { box-shadow: inset 3px 0 0 var(--serie-a); }

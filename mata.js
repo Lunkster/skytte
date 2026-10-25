@@ -1,7 +1,9 @@
 // Mata in (och ändra) en serie: gren, skytt, datum, serienummer, serietotal eller skott för skott.
-import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.1.0';
+import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.2.0';
 
-export async function renderMata(app, g, serieId = null) {
+let flash = '';   // meddelande som ska visas efter nästa sidbyte (t.ex. "sparad, nästa serie")
+
+export async function renderMata(app, g, serieId = null, lage = '') {
   const grenar = g.grenar.filter((x) => x.aktiv || serieId);
   const skyttar = g.skyttar.filter((x) => x.aktiv || serieId);
   const st = {
@@ -25,13 +27,18 @@ export async function renderMata(app, g, serieId = null) {
     st.datum = s.datum; st.nr = s.nr; st.nrAndrat = true;
     st.satt = s.inmatning;
     if (s.inmatning === 'skott') st.vals = s.skott.map(Number);
-    else { st.total = fmt(s.poang, 1).replace(/\s/g, ''); st.stjarnor = s.stjarnor ?? 0; }
+    else {
+      st.total = fmt(s.poang, 1).replace(/\s/g, ''); st.stjarnor = s.stjarnor ?? 0;
+      st.jamfor = { poang: Number(s.poang), stjarnor: s.stjarnor };   // inmatad total att jämföra skotten mot
+      if (lage === 'skott') st.satt = 'skott';
+    }
   }
   if (!st.satt) st.satt = minns(`satt-${st.gren.kod}`) ?? 'total';
   nollstallSkott(st);
 
   app.innerHTML = `
     <h1>${st.redigera ? 'Ändra serie' : 'Mata in'}</h1>
+    ${flash ? `<p class="msg info">${esc(flash)}</p>` : ''}
     <section class="card form">
       <div class="falt"><span class="etikett">Gren</span><div class="seg" id="gren"></div></div>
       <div class="falt"><span class="etikett">Skytt</span><div class="chips" id="skytt"></div></div>
@@ -45,6 +52,7 @@ export async function renderMata(app, g, serieId = null) {
         <div class="seg" id="satt">
           <button type="button" data-satt="total">Serietotal</button><button type="button" data-satt="skott">Enskilda skott</button>
         </div></div>
+      <div class="info" id="kompl" hidden></div>
       <div id="inmatning"></div>
       <div class="summa" id="summa"></div>
       <details class="kommentar" id="kommentarbox">
@@ -68,6 +76,16 @@ export async function renderMata(app, g, serieId = null) {
     $('skytt').innerHTML = skyttar.map((x) => `<button type="button" data-id="${x.id}" class="${x.id === st.skytt?.id ? 'vald' : ''}">${esc(x.namn)}</button>`).join('');
     app.querySelectorAll('#satt button').forEach((b) => b.classList.toggle('vald', b.dataset.satt === st.satt));
     $('nr').textContent = st.nr;
+    const kompl = $('kompl');
+    kompl.hidden = !st.jamfor;
+    if (st.jamfor) {
+      kompl.innerHTML = st.satt === 'total'
+        ? `Inmatad som total: <b>${fmt(st.jamfor.poang)}</b> <span class="stj">★ ${st.jamfor.stjarnor ?? '–'}</span>. Har du skotten på utskriften?
+           <button type="button" class="btn" id="komplknapp">Komplettera med skott</button>`
+        : `Kompletterar serien som var inmatad som total: <b>${fmt(st.jamfor.poang)}</b> <span class="stj">★ ${st.jamfor.stjarnor ?? '–'}</span>.`;
+      $('komplknapp')?.addEventListener('click', () => { app.querySelector('#satt button[data-satt=skott]').click(); });
+    }
+    $('spara').textContent = !st.redigera ? 'Spara serie' : (st.jamfor && st.satt === 'skott' ? 'Spara och nästa utan skott' : 'Spara ändringar');
     $('kommentarvem').textContent = st.skytt ? `· ${st.skytt.namn} ${st.datum}` : '';
   }
 
@@ -197,7 +215,20 @@ export async function renderMata(app, g, serieId = null) {
     const ifyllda = st.vals.filter((v) => v !== null);
     const s = summa(ifyllda), stj = ifyllda.filter((v) => stjarna(v, gr)).length;
     $('summa').innerHTML = `<b>${fmt(s, gr.decimaler || ifyllda.some((v) => v !== Math.trunc(v)) ? 1 : 0)}</b> poäng · <span class="stj">★ ${stj}</span>
-      <span class="muted">· ${ifyllda.length} av ${gr.antal_skott} skott</span>${ifyllda.length === gr.antal_skott ? guldText(s) : ''}`;
+      <span class="muted">· ${ifyllda.length} av ${gr.antal_skott} skott</span>${ifyllda.length === gr.antal_skott ? guldText(s) : ''}${jamforText(ifyllda, s, stj)}`;
+  }
+
+  // Jämförelse mot den tidigare inmatade totalen när en serie kompletteras med skott
+  function jamforText(ifyllda, s, stj) {
+    if (!st.jamfor || !ifyllda.length) return '';
+    const gr = st.gren;
+    if (ifyllda.length < gr.antal_skott) {
+      return `<div class="jamfor muted">Inmatat tidigare: ${fmt(st.jamfor.poang)} ★ ${st.jamfor.stjarnor ?? '–'} · kvar ${fmt(st.jamfor.poang - s)} på ${gr.antal_skott - ifyllda.length} skott</div>`;
+    }
+    const diff = Math.round((s - st.jamfor.poang) * 10) / 10, stjOk = st.jamfor.stjarnor === null || st.jamfor.stjarnor === stj;
+    if (!diff && stjOk) return '<div class="jamfor ok">✓ Stämmer med den inmatade totalen</div>';
+    return `<div class="jamfor avviker">Stämmer inte med inmatat: ${fmt(st.jamfor.poang)} ★ ${st.jamfor.stjarnor ?? '–'}
+      (${diff ? `${diff > 0 ? '+' : '−'}${fmt(Math.abs(diff))} poäng` : 'poängen stämmer'}${stjOk ? '' : `, ${stj - st.jamfor.stjarnor > 0 ? '+' : '−'}${Math.abs(stj - st.jamfor.stjarnor)} ★`}). Kontrollera skotten.</div>`;
   }
 
   function guldText(v) {
@@ -275,6 +306,11 @@ export async function renderMata(app, g, serieId = null) {
       if (!ifyllda) return meddela('Fyll i skotten.', true);
       if (app.querySelector('.skottrutnat .ogiltig')) return meddela('Något skott är felskrivet (röd ruta).', true);
       if (ifyllda < n && !confirm(`Bara ${ifyllda} av ${n} skott ifyllda. Spara ändå?`)) return;
+      if (st.jamfor && ifyllda === n) {
+        const sum = summa(st.vals), stj = st.vals.filter((v) => stjarna(v, gr)).length;
+        const avviker = Math.abs(sum - st.jamfor.poang) > 0.05 || (st.jamfor.stjarnor !== null && st.jamfor.stjarnor !== stj);
+        if (avviker && !confirm(`Skotten ger ${fmt(sum)} ★ ${stj}, men inmatat var ${fmt(st.jamfor.poang)} ★ ${st.jamfor.stjarnor ?? '–'}. Spara skotten ändå?`)) return;
+      }
       skott = st.vals.map((v, i) => ({ nr: i + 1, varde: v })).filter((x) => x.varde !== null);
       rad = { total: null, stjarnor: null };
     }
@@ -296,6 +332,7 @@ export async function renderMata(app, g, serieId = null) {
         }
       }
       await sparaKommentar().catch(() => {});
+      if (st.redigera && st.jamfor && st.satt === 'skott') { await tillNasta(); return; }
       if (st.redigera) { location.hash = '#/serier'; return; }
       const poang = st.satt === 'total' ? rad.total : summa(skott.map((x) => x.varde));
       const stj = st.satt === 'total' ? rad.stjarnor : skott.filter((x) => stjarna(x.varde, gr)).length;
@@ -315,13 +352,29 @@ export async function renderMata(app, g, serieId = null) {
     });
   }
 
+  // Nästa serie utan skott för samma skytt: samma dag högre serienummer, annars äldre dagar
+  async function tillNasta() {
+    const r = st.redigera;
+    const kvar = await api(`v_serie?select=id,datum,nr,gren_id&inmatning=eq.total&skytt_id=eq.${r.skytt_id}&order=datum.desc,gren_id,nr`);
+    const nasta = kvar.find((x) => x.datum < r.datum || (x.datum === r.datum && (x.gren_id > r.gren_id || (x.gren_id === r.gren_id && x.nr > r.nr))))
+      ?? kvar[0];
+    const klar = `${st.skytt.namn} ${r.datum} serie ${r.nr} kompletterad med skott.`;
+    if (!nasta) { flash = `${klar} ${st.skytt.namn} har inga fler serier utan skott.`; location.hash = '#/serier'; return; }
+    flash = `${klar} Nästa: ${nasta.datum} serie ${nasta.nr} (${kvar.length} kvar för ${st.skytt.namn}).`;
+    location.hash = `#/serie/${nasta.id}/skott`;
+  }
+
   function fokusera() {
     if (st.satt === 'total') $('total')?.focus();
     else { const tom = [...app.querySelectorAll('.skottrutnat input')].find((i) => !i.value); tom?.focus(); }
   }
 
   ritaVal(); ritaInmatning(); await laddaDag();
+  flash = '';
+  if (lage === 'skott') fokusera();
 }
+
+export const tomFlash = () => { const f = flash; flash = ''; return f; };
 
 function nollstallSkott(st) {
   const n = st.gren.antal_skott;

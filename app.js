@@ -1,8 +1,8 @@
 // Router, inloggning och grunddata (skyttar, grenar, guldnivåer).
-import { api, login, logout, isLoggedIn, esc } from './lib.js?v=0.1.0';
-import { renderMata } from './mata.js?v=0.1.0';
-import { renderSerier } from './serier.js?v=0.1.0';
-import { renderStatistik } from './statistik.js?v=0.1.0';
+import { api, login, logout, isLoggedIn, esc } from './lib.js?v=0.2.0';
+import { renderMata, tomFlash } from './mata.js?v=0.2.0';
+import { renderSerier } from './serier.js?v=0.2.0';
+import { renderStatistik } from './statistik.js?v=0.2.0';
 
 const app = document.getElementById('app');
 let grund = null;
@@ -27,9 +27,9 @@ async function route() {
   if (!isLoggedIn()) return renderLogin();
   try {
     const g = await grunddata();
-    if (vy === 'serier') return await renderSerier(app, g);
+    if (vy === 'serier') return await renderSerier(app, g, tomFlash());
     if (vy === 'statistik') return await renderStatistik(app, g);
-    if (vy === 'serie' && arg[0]) return await renderMata(app, g, Number(arg[0]));
+    if (vy === 'serie' && arg[0]) return await renderMata(app, g, Number(arg[0]), arg[1] ?? '');
     return await renderMata(app, g);
   } catch (e) {
     if (e.status === 401) return renderLogin('Logga in igen.');

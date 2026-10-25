@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#11161a">
+  <title>Skyttestatistik</title>
+  <link rel="icon" href="ikon.svg?v=0.1.0" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Skytte">
+  <link rel="stylesheet" href="style.css?v=0.1.0">
+</head>
+<body>
+  <header class="topbar">
+    <a href="#/" class="brand" aria-label="Till inmatningen">
+      <img src="ikon.svg?v=0.1.0" alt="" class="logo" aria-hidden="true"><span>Skytte</span>
+    </a>
+    <nav class="tabs" aria-label="Huvudmeny">
+      <a href="#/" data-route="mata">Mata in</a>
+      <a href="#/serier" data-route="serier">Serier</a>
+      <a href="#/statistik" data-route="statistik">Statistik</a>
+    </nav>
+  </header>
+
+  <main id="app" aria-live="polite">
+    <p class="muted center">Laddar …</p>
+  </main>
+
+  <footer class="foot">
+    <span id="version">v0.1.0</span> · <a href="#/loggaut" id="loggaut" hidden>Logga ut</a>
+  </footer>
+
+  <script type="module" src="app.js?v=0.1.0"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+</body>
+</html>

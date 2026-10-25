@@ -1,0 +1,174 @@
+/* Skyttestatistik – mörk tavla, vit text, röd tia och guld för guldserier */
+[hidden] { display: none !important; }
+:root {
+  color-scheme: dark;
+  --bg:      #11161a;
+  --kort:    #1a2026;
+  --kort-2:  #232b33;
+  --linje:   #333e48;
+  --text:    #eef2f4;
+  --text-2:  #b9c3ca;
+  --text-3:  #84909a;
+  --accent:  #e8553d;   /* tians röda */
+  --accent-2:#ff7a5e;
+  --guld:    #e3b341;
+  --fel:     #ff8a7a;
+  --serie-a: #3987e5;   /* dagsmedel */
+  --serie-b: rgba(238, 242, 244, 0.35); /* bästa serie, dämpad */
+  --radie: 12px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px; line-height: 1.45; min-height: 100vh; display: flex; flex-direction: column;
+}
+a { color: var(--accent-2); }
+
+.topbar {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); background: var(--bg); border-bottom: 2px solid var(--accent);
+}
+.brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 18px; }
+.logo { width: 32px; height: 32px; }
+.tabs { display: flex; gap: 2px; }
+.tabs a { color: var(--text-2); text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 999px; min-height: 44px; display: inline-flex; align-items: center; font-size: 15px; }
+.tabs a.active { background: var(--accent); color: #fff; }
+@media (max-width: 420px) { .brand span { display: none; } .tabs a { padding: 8px 10px; } }
+
+main { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 16px; }
+.foot { text-align: center; color: var(--text-3); font-size: 13px; padding: 16px; }
+.foot a { color: var(--text-3); }
+
+h1 { font-size: 24px; margin: 0 0 12px; }
+h2 { font-size: 18px; margin: 20px 0 8px; color: var(--text); }
+.card h2:first-child, .card h3:first-child { margin-top: 0; }
+h3 { font-size: 16px; margin: 0; }
+.muted { color: var(--text-3); }
+.center { text-align: center; }
+.liten { font-size: 13px; }
+.hjalp { color: var(--text-3); font-size: 13px; margin: 6px 0 0; }
+
+.card { background: var(--kort); border: 1px solid var(--linje); border-radius: var(--radie); padding: 14px; margin-bottom: 12px; }
+.fel h2 { color: var(--fel); }
+
+/* formulär */
+.form .falt { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; min-width: 0; }
+.etikett { font-size: 13px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
+.rad2 { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+input, textarea, select {
+  font: inherit; font-size: 18px; color: var(--text); background: var(--kort-2); border: 1px solid var(--linje);
+  border-radius: 10px; padding: 10px 12px; min-height: 48px; width: 100%;
+}
+input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea { font-size: 16px; resize: vertical; }
+input[type=date] { min-width: 0; }
+
+.btn {
+  font: inherit; font-weight: 600; color: var(--text); background: var(--kort-2); border: 1px solid var(--linje);
+  border-radius: 10px; padding: 10px 16px; min-height: 48px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+}
+.btn:disabled { opacity: .5; }
+.btn.primar { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.fara { color: var(--fel); border-color: var(--fel); background: transparent; }
+.btn.stor { font-size: 18px; flex: 1; min-height: 56px; }
+.btn.liten { min-height: 44px; min-width: 44px; padding: 6px 12px; font-size: 20px; }
+.knappar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+.seg { display: flex; background: var(--kort-2); border: 1px solid var(--linje); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { flex: 1; font: inherit; font-weight: 600; color: var(--text-2); background: transparent; border: 0; border-radius: 9px; min-height: 44px; padding: 6px 10px; cursor: pointer; }
+.seg button.vald { background: var(--accent); color: #fff; }
+.seg.liten button { min-height: 36px; font-size: 14px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { font: inherit; font-weight: 600; color: var(--text); background: var(--kort-2); border: 1px solid var(--linje); border-radius: 999px; min-height: 48px; padding: 8px 18px; cursor: pointer; }
+.chips button.vald { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chips.liten button { min-height: 38px; padding: 6px 14px; font-size: 14px; }
+.filter { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper output { min-width: 40px; text-align: center; font-size: 22px; font-weight: 700; }
+
+/* skott för skott */
+.skottrutnat { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.skottfalt { position: relative; }
+.skottfalt span { position: absolute; top: 3px; left: 7px; font-size: 11px; color: var(--text-3); pointer-events: none; }
+.skottfalt input { text-align: center; font-size: 20px; font-weight: 600; padding: 14px 4px 6px; min-height: 56px; }
+.skottfalt input.stjarna { border-color: var(--guld); box-shadow: inset 0 0 0 1px var(--guld); }
+.skottfalt input.ogiltig { border-color: var(--fel); box-shadow: inset 0 0 0 1px var(--fel); }
+
+.skottrad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+.skottruta { position: relative; font: inherit; font-size: 24px; font-weight: 700; color: var(--text); background: var(--kort-2); border: 1px solid var(--linje); border-radius: 10px; min-height: 60px; cursor: pointer; }
+.skottruta small { position: absolute; top: 3px; left: 7px; font-size: 11px; font-weight: 400; color: var(--text-3); }
+.skottruta.aktiv { outline: 2px solid var(--accent); outline-offset: 1px; }
+.skottruta.stjarna { border-color: var(--guld); color: var(--guld); }
+.knappsats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.knappsats button { font: inherit; font-size: 22px; font-weight: 700; color: var(--text); background: var(--kort-2); border: 1px solid var(--linje); border-radius: 10px; min-height: 56px; cursor: pointer; }
+.knappsats button:active { background: var(--accent); }
+.knappsats .ft { color: var(--guld); border-color: var(--guld); }
+.knappsats .bort { color: var(--text-2); }
+
+.summa { margin-top: 12px; padding: 12px; background: var(--kort-2); border-radius: 10px; font-size: 17px; }
+.summa b { font-size: 22px; }
+.stj { color: var(--guld); white-space: nowrap; }
+.guld { color: var(--guld); font-weight: 700; }
+.ogiltig-text { color: var(--fel); }
+
+.kommentar { margin-top: 12px; }
+.kommentar summary { cursor: pointer; font-weight: 600; color: var(--text-2); min-height: 44px; display: flex; align-items: center; gap: 6px; }
+.kommentar textarea { margin: 6px 0 8px; }
+.kommentar .btn.liten { font-size: 15px; }
+
+.msg { min-height: 1.4em; margin: 10px 0 0; color: var(--text-2); }
+.msg.fel { color: var(--fel); }
+
+/* dagens serier och serielistan */
+.dagrubrik { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.dagkort.egen { border-color: var(--accent); }
+.serielista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.serielista a { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px; color: var(--text); text-decoration: none; background: var(--kort-2); min-height: 44px; }
+.serielista .nr { color: var(--text-3); width: 1.5em; }
+.serielista li.redigeras a { outline: 2px solid var(--accent); }
+.serielista li.krock a { outline: 1px dashed var(--fel); }
+
+.tillfalle .skyttrad { padding: 8px 0; border-top: 1px solid var(--linje); }
+.tillfalle .skyttrad:first-of-type { border-top: 0; }
+.skyttnamn { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.seriechips { display: flex; flex-wrap: wrap; gap: 6px; }
+.seriechip { display: inline-flex; align-items: baseline; gap: 6px; padding: 8px 10px; min-height: 44px; border-radius: 8px; background: var(--kort-2); color: var(--text); text-decoration: none; font-weight: 600; }
+.seriechip small { color: var(--text-3); font-weight: 400; }
+.seriechip .stj { font-size: 13px; font-weight: 400; }
+.seriechip.ofull { border: 1px dashed var(--text-3); }
+.kommentartext { margin: 6px 0 0; color: var(--text-2); font-style: italic; white-space: pre-wrap; }
+
+/* tabeller */
+.tabellwrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; }
+.tabell { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tabell th, .tabell td { padding: 8px 6px; border-bottom: 1px solid var(--linje); text-align: left; vertical-align: top; white-space: nowrap; }
+.tabell th { color: var(--text-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.tabell .tal { text-align: right; font-variant-numeric: tabular-nums; }
+.tabell small.datum { display: block; color: var(--text-3); font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* diagram */
+.rubrikrad { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rubrikrad h2 { margin: 0; }
+.legend { color: var(--text-2); font-size: 13px; margin: 8px 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lg { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-left: 6px; }
+.lg:first-child { margin-left: 0; }
+.lg-a { background: var(--serie-a); }
+.lg-b { background: var(--serie-b); }
+.smadiagram { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.panel { margin: 0; }
+.panel figcaption { margin-bottom: 2px; }
+.panel svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.panel .grid { stroke: var(--linje); stroke-width: 1; }
+.panel .axel { fill: var(--text-3); font-size: 11px; }
+.panel .linje-a { fill: none; stroke: var(--serie-a); stroke-width: 2; stroke-linejoin: round; }
+.panel .linje-b { fill: none; stroke: var(--serie-b); stroke-width: 2; stroke-dasharray: 4 3; }
+.panel .punkt { fill: var(--serie-a); stroke: var(--kort); stroke-width: 2; }
+.panel .traff { fill: transparent; cursor: pointer; }
+.tooltip { position: absolute; z-index: 20; background: var(--kort-2); color: var(--text); border: 1px solid var(--linje); border-radius: 8px; padding: 6px 10px; font-size: 13px; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+
+/* inloggning */
+.login { max-width: 380px; margin: 32px auto; display: flex; flex-direction: column; gap: 10px; }
+.login h1 { margin: 0; }

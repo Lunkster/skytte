@@ -1,0 +1,7 @@
+# Personuppgifter och genererade filer ska inte in i repot
+migrering/ut/
+*.csv
+.env
+tests/node_modules/
+tests/*.png
+tests/package*.json

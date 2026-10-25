@@ -1,0 +1,56 @@
+// Statistik paket A (v0.4.0): form, % av max, kvällens skytt, säsongsmål, rekordtidslinje, jämnhet,
+// snitt per serienummer, träningsmängd, grenarna jämförda, hoppa till, och nytt personbästa vid sparande.
+import { createRequire } from 'module';
+import { skapaDb, koppla } from './attrapp.mjs';
+const require = createRequire(import.meta.url);
+const { chromium } = require('playwright');
+const URL = process.env.APP ?? 'http://localhost:8766/';
+const db = skapaDb();
+db.serie.push({ id: db.nextId++, skytt_id: 1, gren_id: 2, datum: '2026-09-01', nr: 1, total: 44, stjarnor: 1, skapad: '2026-09-01' });
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+let fel = 0; const log = [];
+p.on('pageerror', (e) => { fel++; console.log('SIDFEL', e.message); });
+p.on('dialog', (d) => d.accept());
+await koppla(p, db, log);
+const kolla = (namn, ok, extra = '') => { if (!ok) fel++; console.log(ok ? 'OK  ' : 'FEL ', namn, extra); };
+const v = (ms = 300) => p.waitForTimeout(ms);
+await p.goto(URL); await v();
+await p.fill('#kod', 'kod123'); await p.click('button[type=submit]'); await v(500);
+await p.goto(URL + '#/statistik'); await v(700);
+await p.click('#fgren button:has-text("Luftgevär")'); await v(300);
+const txt = (await p.textContent('#innehall')).replace(/\s+/g, ' ');
+for (const t of ['Kvällens skytt', 'Säsongsmål', 'Rekordtidslinje', 'Jämnhet', 'Snitt per serienummer', 'Träningsmängd', 'Grenarna jämförda']) kolla('sektion ' + t, txt.includes(t));
+const th = await p.$$eval('.card:has(h2:text("Topplista")) th', (e) => e.map((x) => x.textContent));
+kolla('topplista: Form och % av max', th.includes('Form') && th.includes('% av max'), th.join(','));
+kolla('hoppa till-länkar', (await p.$$('#hopp a')).length >= 8, String((await p.$$('#hopp a')).length));
+kolla('kvällens skytt räknar', /\d (gång|gånger)/.test(await p.textContent('#kvallens')));
+const rek = await p.textContent('#rekord'); kolla('rekordtidslinje har kedjor', (rek.match(/›/g) || []).length >= 1);
+kolla('serienummer 3 kolumner', (await p.$$eval('#jamnhet table:nth-of-type(1) th', (e) => e.length)) >= 4);
+// Säsongsmål: sätt mål för Anna (säsong 2026/27 har serier 2026-10-20)
+await p.click('[data-andra="1"]'); await v(100);
+await p.fill('.malform[data-skytt="1"] input', '99,5'); await p.click('.malform[data-skytt="1"] button[type=submit]'); await v(500);
+kolla('mål sparat', db.mal.some((m) => m.skytt_id === 1 && m.snitt === '99.5' && m.sasong === 2026), JSON.stringify(db.mal));
+kolla('mätare visas', !!(await p.$('.malrad[data-skytt="1"] .matare')), (await p.textContent('.malrad[data-skytt="1"]')).replace(/\s+/g, ' '));
+await p.screenshot({ path: 'a1-statistik.png', fullPage: true });
+await p.click('[data-andra="1"]'); await v(100); await p.click('[data-tabort="1"]'); await v(400);
+kolla('mål borttaget', !db.mal.length);
+await p.click('#matt button[data-m=form]'); await v(200);
+kolla('formläge', (await p.textContent('#utveckling .legend')).includes('Form'));
+await p.screenshot({ path: 'a2-form.png', fullPage: false });
+const bredd = await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+kolla('ingen sidled-skroll', bredd);
+// Nytt personbästa vid sparande
+await p.goto(URL + '#/'); await v(500);
+await p.click('#gren button:has-text("Luftgevär")'); await v(300);
+await p.click('#skytt button:has-text("Anna")'); await v(300);
+await p.click('#satt button[data-satt=total]'); await v(100);
+await p.fill('#total', '108,5'); await p.click('#spara'); await v(600);
+const msg = await p.textContent('#msg');
+kolla('grattis vid personbästa', msg.includes('Grattis') && msg.includes('personbästa'), msg);
+await p.fill('#total', '108,0'); await p.click('#spara'); await v(600);
+const msg2 = await p.textContent('#msg');
+kolla('dagsmedel-rekord', msg2.includes('dagsmedlet'), msg2);
+await p.fill('#total', '90,0'); await p.click('#spara'); await v(600);
+kolla('inget serierekord vid vanlig serie', !(await p.textContent('#msg')).includes('för en serie'), await p.textContent('#msg'));
+console.log('fel:', fel); await b.close(); process.exit(fel ? 1 : 0);

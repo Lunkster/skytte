@@ -1,5 +1,6 @@
 // Statistik per gren: topplista, guldnivåer, utveckling per skytt (små diagram) och skottfördelning.
-import { api, esc, fmt, minns, idag } from './lib.js?v=0.3.0';
+import { api, write, esc, fmt, minns, idag } from './lib.js?v=0.4.0';
+import { form, formPil, procent, kvallensSkytt, rekordtidslinje, jamnhetOchSerienummer, traningsmangd, sasongsmal, grenarJamforda, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.4.0';
 
 const PERIODER = [
   { id: 'allt', namn: 'Allt' },
@@ -14,10 +15,13 @@ export async function renderStatistik(app, g) {
   let period = minns('stat-period') ?? 'allt';
   let matt = minns('stat-matt') ?? 'snitt';
 
-  const [serier, dagar] = await Promise.all([
+  const [serier, dagar, malData] = await Promise.all([
     api('v_serie?select=id,datum,nr,skytt_id,gren_id,poang,stjarnor,inmatning,skott,ofullstandig&order=datum,nr'),
-    api('v_dag?select=datum,skytt_id,gren_id,serier,snitt,basta,stjarnor&order=datum'),
+    api('v_dag?select=datum,skytt_id,gren_id,serier,snitt,basta,samsta,stjarnor&order=datum'),
+    api('mal?select=*'),
   ]);
+  let mal = malData;
+  let sasong = minns('stat-sasong') ?? aktuellSasong();
 
   app.innerHTML = `
     <h1>Statistik</h1>
@@ -25,6 +29,7 @@ export async function renderStatistik(app, g) {
       <div class="chips liten" id="fgren"></div>
       <div class="chips liten" id="fperiod"></div>
     </div>
+    <nav class="hopp" id="hopp" aria-label="Hoppa till"></nav>
     <div id="innehall"></div>
     <div class="tooltip" id="tip" hidden></div>`;
 
@@ -63,23 +68,35 @@ export async function renderStatistik(app, g) {
     }).filter(Boolean).sort((a, b) => b.snitt - a.snitt);
 
     const skottSerier = ss.filter((s) => s.inmatning === 'skott');
+    const allaGren = serier.filter((s) => s.gren_id === grenId);
+    const dagarGren = dagar.filter((x) => x.gren_id === grenId);
+    rader.forEach((r) => { r.form = form(r.dagE, r.snitt); });
+    const sasonger = [...new Set([aktuellSasong(), ...allaGren.map((x) => sasongFor(x.datum))])].sort((a, b) => b - a);
+    if (!sasonger.includes(sasong)) sasong = sasonger[0];
 
     el.innerHTML = `
       <section class="card">
         <h2>Topplista</h2>
         <div class="tabellwrap"><table class="tabell">
-          <thead><tr><th>Skytt</th><th class="tal">Snitt</th><th class="tal">Bästa serie</th><th class="tal">Bästa dag</th><th class="tal">Senaste dag</th><th class="tal">★/serie</th><th class="tal">Serier</th></tr></thead>
+          <thead><tr><th>Skytt</th><th class="tal">Snitt</th><th class="tal">Form</th><th class="tal">Bästa serie</th><th class="tal">Bästa dag</th><th class="tal">Senaste dag</th><th class="tal">★/serie</th><th class="tal">% av max</th><th class="tal">Serier</th></tr></thead>
           <tbody>${rader.map((r) => `<tr>
             <td><b>${esc(r.sk.namn)}</b></td>
             <td class="tal"><b>${fmt(r.snitt, 2)}</b></td>
+            <td class="tal">${formPil(r.form)}</td>
             <td class="tal">${fmt(r.bastaSerie.poang, d)}<small class="datum">${esc(r.bastaSerie.datum)}</small></td>
             <td class="tal">${fmt(r.bastaDag?.snitt, 2)}<small class="datum">${esc(r.bastaDag?.datum ?? '')}</small></td>
             <td class="tal">${fmt(r.sist?.snitt, 2)}<small class="datum">${esc(r.sist?.datum ?? '')}</small></td>
             <td class="tal">${fmt(r.stj, 1)}</td>
+            <td class="tal">${fmt(procent(r.snitt, gren), 1)} %</td>
             <td class="tal">${r.antal}<small class="datum">${r.tillfallen} dagar</small></td></tr>`).join('')}</tbody>
         </table></div>
-        <p class="hjalp">Bästa dag = högsta dagsmedel. Sorterat på snitt per serie.</p>
+        <p class="hjalp">Bästa dag = högsta dagsmedel. Form = snitt av de senaste tre dagarna mot eget snitt. Sorterat på snitt per serie.</p>
       </section>
+
+      ${kvallensSkytt(allaGren, dagarGren, g, fran)}
+
+      ${sasonger.length > 1 ? `<div class="chips liten sasongval" id="fsasong">${sasonger.map((y) => `<button type="button" data-y="${y}" class="${y === sasong ? 'vald' : ''}">${esc(sasongNamn(y))}</button>`).join('')}</div>` : ''}
+      ${sasongsmal(allaGren, mal, g, gren, sasong)}
 
       ${guld.length ? `<section class="card">
         <h2>Guldserier</h2>
@@ -91,23 +108,61 @@ export async function renderStatistik(app, g) {
         <p class="hjalp">Antal serier på minst gränsen.</p>
       </section>` : `<section class="card"><h2>Guldserier</h2><p class="muted">Inga guldnivåer för ${esc(gren.namn)} än.</p></section>`}
 
-      <section class="card">
+      <section class="card" id="utveckling">
         <div class="rubrikrad"><h2>Utveckling</h2>
           <div class="seg liten" id="matt">
             <button type="button" data-m="snitt" class="${matt === 'snitt' ? 'vald' : ''}">Poäng</button>
+            <button type="button" data-m="form" class="${matt === 'form' ? 'vald' : ''}">Form</button>
             <button type="button" data-m="stj" class="${matt === 'stj' ? 'vald' : ''}">Stjärnor</button>
           </div></div>
         <p class="legend">${matt === 'snitt'
           ? '<span class="lg lg-a"></span>Dagsmedel <span class="lg lg-b"></span>Bästa serie'
-          : '<span class="lg lg-a"></span>Stjärnor per serie (dagsmedel)'}</p>
+          : matt === 'form' ? '<span class="lg lg-a"></span>Form (snitt senaste 3 dagarna) <span class="lg lg-b"></span>Dagsmedel'
+            : '<span class="lg lg-a"></span>Stjärnor per serie (dagsmedel)'}</p>
         <div class="smadiagram">${rader.map((r) => `<figure class="panel" data-skytt="${r.sk.id}">
           <figcaption><b>${esc(r.sk.namn)}</b></figcaption>${diagram(r, rader, matt, gren)}</figure>`).join('')}</div>
       </section>
 
+      ${rekordtidslinje(allaGren, dagarGren, g, gren)}
+      ${jamnhetOchSerienummer(ss, dd, g, gren)}
+      ${traningsmangd(ss, g)}
+      ${grenarJamforda(serier, g)}
       ${skottSerier.length ? skottfordelning(skottSerier, g, gren) : ''}
       ${skottSerier.length ? perSkottnummer(skottSerier, g, gren) : ''}
       ${skottSerier.length ? tappadePoang(skottSerier, g, gren) : ''}
       ${skottSerier.length ? svitar(skottSerier, g, gren) : ''}`;
+
+    // Hoppa till-rad
+    el.querySelectorAll('section.card > h2:first-child, section.card .rubrikrad h2').forEach((h, i) => {
+      const sek = h.closest('section'); if (!sek.id) sek.id = `sek${i}`;
+    });
+    app.querySelector('#hopp').innerHTML = [...el.querySelectorAll('section.card')].map((sek) => {
+      const h = sek.querySelector('h2'); return h ? `<a href="#" data-mal="${sek.id}">${esc(h.textContent.replace(/ \d{4}\/\d{2}$/, ''))}</a>` : '';
+    }).join('');
+    app.querySelector('#hopp').onclick = (e) => { const a = e.target.closest('a'); if (!a) return; e.preventDefault(); document.getElementById(a.dataset.mal)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+    // säsongsmål
+    el.querySelector('#fsasong')?.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; sasong = minns('stat-sasong', Number(b.dataset.y)); rita(); document.getElementById('mal')?.scrollIntoView({ block: 'start' }); });
+    el.querySelectorAll('[data-andra]').forEach((b) => b.addEventListener('click', () => {
+      const f = el.querySelector(`.malform[data-skytt="${b.dataset.andra}"]`); f.hidden = !f.hidden; if (!f.hidden) f.querySelector('input').focus();
+    }));
+    const sparaMal = async (skyttId, varde) => {
+      const filter = `skytt_id=eq.${skyttId}&gren_id=eq.${grenId}&sasong=eq.${sasong}`;
+      if (varde === null) await write('DELETE', `mal?${filter}`, undefined, 'return=minimal');
+      else await write('POST', 'mal', { skytt_id: skyttId, gren_id: grenId, sasong, snitt: varde }, 'resolution=merge-duplicates,return=minimal');
+      mal = await api('mal?select=*'); rita(); document.getElementById('mal')?.scrollIntoView({ block: 'start' });
+    };
+    el.querySelectorAll('.malform').forEach((f) => f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const t = f.querySelector('input').value.trim().replace(',', '.');
+      const v = Number(t);
+      const max = gren.antal_skott * (gren.decimaler ? 10.9 : Number(gren.fulltraff ?? 10));
+      if (!t || !Number.isFinite(v) || v <= 0 || v > max) { f.querySelector('input').classList.add('ogiltig'); return; }
+      try { await sparaMal(Number(f.dataset.skytt), Math.round(v * 10) / 10); } catch (err) { alert(err.message); }
+    }));
+    el.querySelectorAll('[data-tabort]').forEach((b) => b.addEventListener('click', async () => {
+      try { await sparaMal(Number(b.dataset.tabort), null); } catch (err) { alert(err.message); }
+    }));
 
     // hover/tryck på punkter
     const tip = app.querySelector('#tip');
@@ -140,18 +195,20 @@ export async function renderStatistik(app, g) {
 // Ett litet linjediagram per skytt. Samma y-skala för alla paneler så att de går att jämföra.
 function diagram(r, alla, matt, gren) {
   const W = 320, H = 150, m = { l: 34, r: 8, t: 10, b: 22 };
-  const punkter = r.dagE.map((x) => {
+  const glid = (dagE, i) => { const f = dagE.slice(Math.max(0, i - 2), i + 1).map((x) => Number(x.snitt)); return f.reduce((a, v) => a + v, 0) / f.length; };
+  const punkter = r.dagE.map((x, i) => {
     const ss = r.egna.filter((s) => s.datum === x.datum && s.stjarnor !== null);
     return {
       datum: x.datum, t: Date.parse(x.datum),
-      a: matt === 'snitt' ? Number(x.snitt) : (ss.length ? ss.reduce((a, s) => a + s.stjarnor, 0) / ss.length : null),
-      b: matt === 'snitt' ? Number(x.basta) : null,
+      a: matt === 'snitt' ? Number(x.snitt) : matt === 'form' ? glid(r.dagE, i) : (ss.length ? ss.reduce((a, s) => a + s.stjarnor, 0) / ss.length : null),
+      b: matt === 'snitt' ? Number(x.basta) : matt === 'form' ? Number(x.snitt) : null,
       serier: x.serier,
     };
   }).filter((p) => p.a !== null);
   // gemensam skala
   const allaP = alla.flatMap((x) => x.dagE.map((d) => {
     if (matt === 'snitt') return [Number(d.snitt), Number(d.basta)];
+    if (matt === 'form') return [Number(d.snitt)];
     const ss = x.egna.filter((s) => s.datum === d.datum && s.stjarnor !== null);
     return ss.length ? [ss.reduce((a, s) => a + s.stjarnor, 0) / ss.length] : [];
   })).flat();
@@ -172,17 +229,18 @@ function diagram(r, alla, matt, gren) {
   s += `<text x="${m.l}" y="${H - 6}" class="axel">${manad(t0)}</text>`;
   if (t1 !== t0) s += `<text x="${W - m.r}" y="${H - 6}" class="axel" text-anchor="end">${manad(t1)}</text>`;
   const linje = (k) => punkter.filter((p) => p[k] !== null).map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p[k]).toFixed(1)}`).join('');
-  if (matt === 'snitt') s += `<path d="${linje('b')}" class="linje-b"/>`;
+  if (matt === 'snitt' || matt === 'form') s += `<path d="${linje('b')}" class="linje-b"/>`;
   s += `<path d="${linje('a')}" class="linje-a"/>`;
   s += punkter.map((p) => `<circle cx="${X(p.t)}" cy="${Y(p.a)}" r="4" class="punkt"/>`).join('');
   // större träffytor för hover/tryck
   s += punkter.map((p) => {
     const tip = matt === 'snitt'
       ? `<b>${esc(p.datum)}</b><br>Dagsmedel ${fmt(p.a, 2)}<br>Bästa serie ${fmt(p.b, d)}<br>${p.serier} serier`
-      : `<b>${esc(p.datum)}</b><br>${fmt(p.a, 1)} stjärnor per serie`;
+      : matt === 'form' ? `<b>${esc(p.datum)}</b><br>Form ${fmt(p.a, 2)}<br>Dagsmedel ${fmt(p.b, 2)}`
+        : `<b>${esc(p.datum)}</b><br>${fmt(p.a, 1)} stjärnor per serie`;
     return `<circle cx="${X(p.t)}" cy="${Y(p.a)}" r="14" class="traff" data-tip="${esc(tip)}"/>`;
   }).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(r.sk.namn)}: ${matt === 'snitt' ? 'dagsmedel' : 'stjärnor'} över tid">${s}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(r.sk.namn)}: ${matt === 'snitt' ? 'dagsmedel' : matt === 'form' ? 'form' : 'stjärnor'} över tid">${s}</svg>`;
 }
 
 function niceStep(raw) { const p = 10 ** Math.floor(Math.log10(raw)); const n = raw / p; return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * p; }
@@ -197,7 +255,7 @@ function skottfordelning(ss, g, gren) {
     if (!vals.length) return null;
     return { sk, n: vals.length, snitt: vals.reduce((a, v) => a + v, 0) / vals.length, korg: korgar.map(([, f]) => vals.filter(f).length) };
   }).filter(Boolean);
-  return `<section class="card">
+  return `<section class="card" id="skottford">
     <h2>Skottfördelning</h2>
     <div class="tabellwrap"><table class="tabell">
       <thead><tr><th>Skytt</th><th class="tal">Skott</th><th class="tal">Snitt/skott</th>${korgar.map(([k]) => `<th class="tal">${k}</th>`).join('')}</tr></thead>

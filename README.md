@@ -13,7 +13,8 @@ Webbapp för familjens skytteresultat: inmatning per serie (serietotal eller sko
 | `index.html`, `app.js` | Sidan, router, inloggning, grunddata |
 | `mata.js` | Mata in och ändra serier |
 | `serier.js` | Alla serier per tillfälle |
-| `statistik.js` | Topplista, guldserier, utveckling, skottfördelning |
+| `statistik.js` | Statistiksidan: topplista, guldserier, utveckling och statistik som kräver skott |
+| `statistikA.js` | Form, kvällens skytt, säsongsmål, rekordtidslinje, jämnhet, serienummer, träningsmängd, grenarna jämförda |
 | `lib.js` | Supabase-anrop (schema `skytte`), inloggning, tolkning av skott |
 | `supabase/` | Schema, vyer och behörighet som numrerade SQL-filer |
 | `migrering/migrera.py` | Engångsflytt från Google-arket (CSV) |

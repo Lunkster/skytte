@@ -9,6 +9,8 @@ erDiagram
   gren ||--o{ guldniva : har
   serie ||--o{ skott : "består av"
   skytt ||--o{ kommentar : "skriver per dag"
+  skytt ||--o{ mal : "har per säsong"
+  gren ||--o{ mal : "i gren"
 
   skytt {
     smallint id PK
@@ -46,6 +48,12 @@ erDiagram
     smallint nr PK
     numeric varde
   }
+  mal {
+    smallint skytt_id PK
+    smallint gren_id PK
+    smallint sasong PK
+    numeric snitt
+  }
   kommentar {
     smallint skytt_id PK
     date datum PK
@@ -61,6 +69,7 @@ erDiagram
 - Stjärna: skott ≥ `gren.stjarna_fran` (10,2 på 10 m, 10,1 på 50 m).
 - Guldnivå: serie med poäng **≥** `grans` (samma som Looker-rapporten räknade).
 - Kommentar gäller en skytt och ett datum, oavsett gren.
+- Säsongsmål (`mal`, sedan 2026-10-26): mål för snitt per serie per skytt, gren och säsong. Säsong = startåret, 1 augusti – 31 juli (2026 = 2026/27).
 
 ## Vyer
 | Vy | Innehåll |

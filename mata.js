@@ -1,5 +1,5 @@
 // Mata in (och ändra) en serie: gren, skytt, datum, serienummer, serietotal eller skott för skott.
-import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.2.1';
+import { api, write, esc, fmt, idag, minns, num, tolkaSkott, tolkaTotal, stjarna, summa, maxSkott } from './lib.js?v=0.4.0';
 
 let flash = '';   // meddelande som ska visas efter nästa sidbyte (t.ex. "sparad, nästa serie")
 
@@ -289,7 +289,7 @@ export async function renderMata(app, g, serieId = null, lage = '') {
   });
 
   // ---------- spara ----------
-  function meddela(t, fel = false) { const m = $('msg'); m.textContent = t; m.classList.toggle('fel', fel); }
+  function meddela(t, fel = false) { const m = $('msg'); m.textContent = t; m.classList.toggle('fel', fel); m.classList.remove('nyttrekord'); }
 
   $('spara').addEventListener('click', async () => {
     const gr = st.gren, n = gr.antal_skott;
@@ -336,7 +336,9 @@ export async function renderMata(app, g, serieId = null, lage = '') {
       if (st.redigera) { location.hash = '#/serier'; return; }
       const poang = st.satt === 'total' ? rad.total : summa(skott.map((x) => x.varde));
       const stj = st.satt === 'total' ? rad.stjarnor : skott.filter((x) => stjarna(x.varde, gr)).length;
-      meddela(`${st.skytt.namn}, serie ${st.nr} sparad: ${fmt(poang, gr.decimaler || poang % 1 ? 1 : 0)} ★ ${stj}`);
+      const rekord = await rekordText(id, poang).catch(() => '');
+      meddela(`${st.skytt.namn}, serie ${st.nr} sparad: ${fmt(poang, gr.decimaler || poang % 1 ? 1 : 0)} ★ ${stj}${rekord}`);
+      if (rekord) $('msg').classList.add('nyttrekord'); else $('msg').classList.remove('nyttrekord');
       nollstallSkott(st); st.total = ''; st.stjarnor = 0; st.nrAndrat = false;
       ritaInmatning(); await laddaDag();
       fokusera();
@@ -362,6 +364,25 @@ export async function renderMata(app, g, serieId = null, lage = '') {
     if (!nasta) { flash = `${klar} ${st.skytt.namn} har inga fler serier utan skott.`; location.hash = '#/serier'; return; }
     flash = `${klar} Nästa: ${nasta.datum} serie ${nasta.nr} (${kvar.length} kvar för ${st.skytt.namn}).`;
     location.hash = `#/serie/${nasta.id}/skott`;
+  }
+
+  // F-31: nytt personbästa (serie, och dagsmedel när minst två serier skjutits idag)
+  async function rekordText(id, poang) {
+    const tidigare = await api(`v_serie?select=id,datum,poang&skytt_id=eq.${st.skytt.id}&gren_id=eq.${st.gren.id}`);
+    const andra = tidigare.filter((s) => s.id !== id);
+    if (!andra.length) return '';
+    const delar = [];
+    const maxSerie = Math.max(...andra.map((s) => Number(s.poang)));
+    if (poang > maxSerie) delar.push(`nytt personbästa för en serie (förra ${fmt(maxSerie, st.gren.decimaler ? 1 : 0)})`);
+    const idag = tidigare.filter((s) => s.datum === st.datum).map((s) => Number(s.poang));
+    const forr = andra.filter((s) => s.datum !== st.datum);
+    if (idag.length >= 2 && forr.length) {
+      const perDag = new Map(); forr.forEach((s) => { if (!perDag.has(s.datum)) perDag.set(s.datum, []); perDag.get(s.datum).push(Number(s.poang)); });
+      const bastaDag = Math.max(...[...perDag.values()].map((p) => p.reduce((a, v) => a + v, 0) / p.length));
+      const dagsSnitt = idag.reduce((a, v) => a + v, 0) / idag.length;
+      if (dagsSnitt > bastaDag) delar.push(`dagsmedlet ${fmt(dagsSnitt, 2)} slår bästa dagen (${fmt(bastaDag, 2)})`);
+    }
+    return delar.length ? ` – ★ Grattis! ${delar.join(' och ')}!` : '';
   }
 
   function fokusera() {

@@ -8,7 +8,7 @@ export function skapaDb() {
       { id: 2, kod: 'sg50', namn: 'Salongsgevär 50 m', antal_skott: 5, decimaler: false, fulltraff: '10.1', stjarna_fran: '10.1', aktiv: true, ordning: 2 },
     ],
     guldniva: [[97, 'GULD'], [101, 'GULD ☆'], [103, 'GULD ☆☆'], [105, 'GULD ☆☆☆']].map(([g, n]) => ({ gren_id: 1, grans: String(g), namn: n })),
-    serie: [], skott: [], kommentar: [], nextId: 1,
+    serie: [], skott: [], kommentar: [], mal: [], nextId: 1,
   };
   const dagar = ['2026-02-03', '2026-03-03', '2026-04-07', '2026-10-20'];
   let r = 7; const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
@@ -87,6 +87,10 @@ export async function koppla(page, db, log = [], kod = 'kod123') {
       const s = { ...body, id: db.nextId++, skapad: new Date().toISOString() }; db.serie.push(s); return J([s], 201);
     }
     if (m === 'POST' && t === 'skott') { db.skott.push(...body); return route.fulfill({ status: 201, body: '' }); }
+    if (m === 'POST' && t === 'mal') {
+      db.mal = db.mal.filter((k) => !(k.skytt_id === body.skytt_id && k.gren_id === body.gren_id && k.sasong === body.sasong)); db.mal.push({ ...body, snitt: String(body.snitt) });
+      return route.fulfill({ status: 201, body: '' });
+    }
     if (m === 'POST' && t === 'kommentar') {
       db.kommentar = db.kommentar.filter((k) => !(k.skytt_id === body.skytt_id && k.datum === body.datum)); db.kommentar.push(body);
       return route.fulfill({ status: 201, body: '' });

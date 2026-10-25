@@ -188,3 +188,36 @@ p.msg.info { display: block; }
 
 /* paket B (v0.3.0) */
 .tabell td.framhav { color: var(--accent-2); font-weight: 700; }
+
+/* paket A (v0.4.0) */
+.hopp { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; margin: -4px 0 6px; scrollbar-width: none; }
+.hopp::-webkit-scrollbar { display: none; }
+.hopp a { flex: none; font-size: 13px; color: var(--text-2); text-decoration: none; border: 1px solid var(--linje); border-radius: 999px; padding: 6px 12px; min-height: 32px; display: inline-flex; align-items: center; }
+.hopp a:hover { color: var(--text); border-color: var(--text-3); }
+.form { white-space: nowrap; font-weight: 600; }
+.form.upp { color: #6fd39b; }
+.form.ner { color: var(--fel); }
+.tabell td.basta { color: #6fd39b; font-weight: 700; }
+.underrubrik { font-size: 15px; color: var(--text-2); margin: 18px 0 6px; }
+.kvallens-antal { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 8px; color: var(--text-2); }
+.rekordrad { padding: 8px 0; border-top: 1px solid var(--linje); }
+.rekordrad:first-of-type { border-top: 0; }
+.rekordkedja { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 4px; }
+.rekordkedja > .muted { width: 72px; }
+.rekord { display: inline-flex; flex-direction: column; align-items: center; background: var(--kort-2); border-radius: 8px; padding: 3px 8px; line-height: 1.2; }
+.rekord small { font-size: 10px; color: var(--text-3); }
+.rekordkedja .pil { color: var(--text-3); }
+.sasongval { margin: 0 0 8px; }
+.malrad { padding: 8px 0; border-top: 1px solid var(--linje); }
+.malrad:first-child { border-top: 0; }
+.malhuvud { display: flex; align-items: center; gap: 8px; }
+.malhuvud .textknapp { margin-left: auto; }
+.btn.textknapp { font-size: 14px; min-height: 36px; padding: 4px 12px; }
+.malkropp { margin-top: 6px; }
+.matare { height: 10px; background: var(--kort-2); border-radius: 5px; overflow: hidden; margin-bottom: 4px; }
+.matare .fyllning { height: 100%; background: var(--serie-a); border-radius: 5px; }
+.matare.klar .fyllning { background: #6fd39b; }
+.malform { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.malform input { flex: 1; min-width: 140px; min-height: 40px; font-size: 16px; }
+.malform input.ogiltig { border-color: var(--fel); }
+.nyttrekord { color: var(--guld); font-weight: 700; }

@@ -1,8 +1,8 @@
 // Skyttsida (F-28): egen utveckling, nyckeltal, säsongsmål, utmärkelser, senaste tillfällen och skottprofil.
-import { api, esc, fmt, minns } from './lib.js?v=0.5.1';
-import { diagram, perSkottnummer, tappadePoang, svitar, kopplaTips } from './statistik.js?v=0.5.1';
-import { form, formPil, procent, kvallensLista, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.1';
-import { beraknaUtmarkelser, marke, malNattFor, kopplaForklaring } from './utmarkelser.js?v=0.5.1';
+import { api, esc, fmt, minns } from './lib.js?v=0.5.2';
+import { diagram, perSkottnummer, tappadePoang, svitar, kopplaTips } from './statistik.js?v=0.5.2';
+import { form, formPil, procent, kvallensLista, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.2';
+import { beraknaUtmarkelser, marke, malNattFor, kopplaForklaring } from './utmarkelser.js?v=0.5.2';
 
 export async function renderSkytt(app, g, skyttId) {
   const sk = g.skyttar.find((x) => x.id === skyttId);

@@ -1,7 +1,7 @@
 // Utmärkelser (F-43). Räknas fram ur serierna – lagras inte. Allt är per skytt och gren.
 // Fyra nivåer så att det finns något att sträva mot länge: 1 brons, 2 silver, 3 guld, 4 mästare.
-// Balanserade 2026-10-26: få lätta i början, fler svåra (önskemål Henrik).
-import { esc, fmt, maxSkott } from './lib.js?v=0.5.1';
+// Balanserade 2026-10-26: få lätta i början, fler svåra (önskemål Henrik). Första GULD och 3 GULD i rad behålls (Henrik).
+import { esc, fmt, maxSkott } from './lib.js?v=0.5.2';
 
 export const NIVAER = { 1: 'Brons', 2: 'Silver', 3: 'Guld', 4: 'Mästare' };
 const ordning = (a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : a.nr - b.nr);
@@ -32,8 +32,8 @@ export function beraknaUtmarkelser(egna, gren, extra = {}) {
 
   // ---------- Resultat: guldnivåerna ----------
   if (guld.length) {
-    // Första serien på nivå 2–4 (den lägsta guldnivån är för lätt för att vara en utmärkelse)
-    guld.slice(1).forEach((g, i) => {
+    // Första serien på varje guldnivå (GULD och GULD ☆ brons, ☆☆ silver, ☆☆☆ guld)
+    guld.forEach((g, j) => { const i = Math.max(0, j - 1);
       const forsta = ser.find((s) => poang(s) >= Number(g.grans));
       lagg(`guld-${g.grans}`, 'Resultat', i + 1, `Första ${g.namn}`, `En serie på minst ${fmt(g.grans, 0)}`,
         `Ges första gången du skjuter en serie på minst ${fmt(g.grans, 0)} poäng – nivån ${g.namn}.`, forsta?.datum);
@@ -49,7 +49,7 @@ export function beraknaUtmarkelser(egna, gren, extra = {}) {
       for (const s of ser) { i = poang(s) >= grans ? i + 1 : 0; basta = Math.max(basta, i); if (i === k && !datum) datum = s.datum; }
       return { datum, basta };
     };
-    const svitNivaer = [[guld[0], [[5, 1], [10, 2]]], [guld[1], [[5, 2], [10, 3], [20, 4]]]];
+    const svitNivaer = [[guld[0], [[3, 1], [5, 1], [10, 2]]], [guld[1], [[5, 2], [10, 3], [20, 4]]]];
     for (const [g, steg] of svitNivaer) {
       if (!g) continue;
       for (const [k, niva] of steg) {

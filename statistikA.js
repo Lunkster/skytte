@@ -1,6 +1,6 @@
 // Statistik paket A (F-30–F-37): form, rekord, jämnhet, serienummer, träningsmängd, kvällens skytt,
 // säsongsmål och grenarna jämförda. Fungerar med serier inmatade både som total och skott för skott.
-import { esc, fmt, idag, maxSkott } from './lib.js?v=0.5.1';
+import { esc, fmt, idag, maxSkott } from './lib.js?v=0.5.2';
 
 const medel = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : null);
 const poang = (s) => Number(s.poang);

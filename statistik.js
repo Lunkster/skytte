@@ -1,7 +1,7 @@
 // Statistik per gren: topplista, guldnivåer, utveckling per skytt (små diagram) och skottfördelning.
-import { api, write, esc, fmt, minns, idag } from './lib.js?v=0.5.1';
-import { beraknaUtmarkelser, marke, malNattFor, kopplaForklaring } from './utmarkelser.js?v=0.5.1';
-import { kvallensLista, form, formPil, procent, kvallensSkytt, rekordtidslinje, jamnhetOchSerienummer, traningsmangd, sasongsmal, grenarJamforda, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.1';
+import { api, write, esc, fmt, minns, idag } from './lib.js?v=0.5.2';
+import { beraknaUtmarkelser, marke, malNattFor, kopplaForklaring } from './utmarkelser.js?v=0.5.2';
+import { kvallensLista, form, formPil, procent, kvallensSkytt, rekordtidslinje, jamnhetOchSerienummer, traningsmangd, sasongsmal, grenarJamforda, sasongFor, sasongNamn, aktuellSasong } from './statistikA.js?v=0.5.2';
 
 const PERIODER = [
   { id: 'allt', namn: 'Allt' },
